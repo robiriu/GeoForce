@@ -1,0 +1,57 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.key
+*-sa-key.json
+*-credentials.json
+.firebase-sa-key.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Node / React dashboard
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Hackathon: weights backup copies (keep the real one only)
+surrogate/weights/*.pt.bak
+surrogate/weights/*.pt.old
+
+# Docker build artifacts
+.dockerignore.bak
