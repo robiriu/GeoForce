@@ -1,0 +1,47 @@
+{
+  "model": "claude-opus-4-7",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(python*)",
+      "Bash(uv*)",
+      "Bash(pip install*)",
+      "Bash(streamlit run*)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(ls*)",
+      "Bash(mkdir*)",
+      "Bash(cat .gitignore)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Write(.env)",
+      "Write(*-sa-key.json)",
+      "Write(*.key)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post_write_pytest.sh \"$CLAUDE_TOOL_FILE_PATH\""
+          }
+        ]
+      }
+    ]
+  }
+}
