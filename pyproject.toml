@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoforce-cchackathon"
+version = "0.1.0"
+description = "Opus 4.7 agents orchestrate GeoForce-Solver + v1.1 CNN surrogate for Indonesian geothermal engineering questions"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Robi Dany Riupassa" }]
+
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "torch>=2.2",
+    "iapws>=1.5.3",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+agent = [
+    "claude-agent-sdk>=0.1.0",
+    "anthropic>=0.40.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "sse-starlette>=2.0",
+]
+app = [
+    "streamlit>=1.33",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.3",
+    "mypy>=1.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["surrogate*", "solver*", "agent*", "tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]

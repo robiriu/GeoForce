@@ -18,17 +18,18 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [x] `.claude/` skills defined (6)
 - [x] `.claude/` commands defined (4)
 - [x] `.claude/settings.json` — model pinned to `claude-opus-4-7`
-- [ ] Fresh `.venv` + `pyproject.toml`
-- [ ] `ANTHROPIC_API_KEY` verified in shell
-- [ ] Registration + Discord acceptance email found
+- [x] Fresh `.venv` + `pyproject.toml`
+- [x] `ANTHROPIC_API_KEY` in `.env` (gitignored) + round-trip tested
+- [x] `.gitignore` protects secrets
+- [~] Registration + Discord acceptance email — deferred per user (2026-04-23)
 
 ## Day 1 — Build both engines
 
-### Morning (3h)
-- [ ] Copy `geoforce_cnn_v1.1.pt` to `surrogate/weights/`
-- [ ] Port `ReservoirCNN` class + encoding to `surrogate/`
-- [ ] `tests/test_surrogate_smoke.py` green
-- [ ] Claude scaffolding discoverable (subagents load)
+### Morning (3h) — COMPLETE 2026-04-23
+- [x] Copy `geoforce_cnn_v1.1.pt` to `surrogate/weights/` (248,595 bytes, from ForceX-AI/products/model_registry)
+- [x] Port `ReservoirCNN` class + encoding to `surrogate/` (model.py, encoding.py, predict.py)
+- [x] `tests/test_surrogate_smoke.py` green — 5/5 pass, 1.7s total
+- [x] Claude scaffolding discoverable (subagents + skills load; `surrogate-operator.md` corrected to match real v1.1 encoding)
 
 ### Afternoon (4h) — Agent team builds GeoForce-Solver
 - [ ] `solver/properties.py` — IAPWS-IF97 wrappers
