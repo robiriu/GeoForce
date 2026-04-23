@@ -36,14 +36,16 @@ from claude_agent_sdk import (
     tool,
 )
 
+from tools.monte_carlo import run as _mc_run
 from tools.predict_solver import predict as _solver_predict
 from tools.predict_surrogate import predict as _surrogate_predict
+from tools.sensitivity import run as _sens_run
 
 DEFAULT_MODEL = "claude-opus-4-6"
 
 SYSTEM_PROMPT = """You are GeoForce, an Indonesian geothermal reservoir engineering agent.
 
-You have two tools, both callable with a single `scenario` dict argument:
+You have four tools:
 
   1. `predict_solver` — runs GeoForce-Solver, a from-scratch implicit
      backward-Euler Darcy + energy (conduction + upwind advection) solver.
@@ -52,6 +54,15 @@ You have two tools, both callable with a single `scenario` dict argument:
 
   2. `predict_surrogate` — runs the v1.1 ReservoirCNN surrogate.
      Fast (tens of ms), best for sweeps and UQ. 32x32 grid only.
+
+  3. `monte_carlo` — Monte Carlo ensemble over parameter distributions.
+     Returns P10/P50/P90 fields + per-draw scalars. Defaults to surrogate
+     engine. Use for Q2-style "how confident" / "P10/P50/P90" questions.
+
+  4. `sensitivity_oat` — one-at-a-time sensitivity sweep for a scenario.
+     Ranks parameters by how much they move a chosen scalar metric
+     (probe_temperature_C, mean_temperature_C, etc). Use to answer
+     "which parameter matters most?" or Q3-style placement questions.
 
 Scenario dict schema (keys are optional; sensible defaults exist):
   - nx, ny (int)         grid cell counts
@@ -176,6 +187,100 @@ async def predict_surrogate_tool(args: dict[str, Any]) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": json.dumps(payload)}]}
 
 
+def _serialize_mc_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Compact MC result for LLM consumption: 8x8 P10/P50/P90 previews + scalars."""
+    p10 = np.asarray(result["p10"])
+    p50 = np.asarray(result["p50"])
+    p90 = np.asarray(result["p90"])
+    sx = max(1, p50.shape[0] // 8)
+    sy = max(1, p50.shape[1] // 8)
+    return {
+        "engine": result["engine"],
+        "n_samples": result["n_samples"],
+        "elapsed_seconds": round(float(result["elapsed_seconds"]), 4),
+        "temperature_C": {
+            "shape": list(p50.shape),
+            "p10_8x8": p10[::sx, ::sy].round(2).tolist(),
+            "p50_8x8": p50[::sx, ::sy].round(2).tolist(),
+            "p90_8x8": p90[::sx, ::sy].round(2).tolist(),
+        },
+        "scalar_summary": result["scalar_summary"],
+    }
+
+
+@tool(
+    "monte_carlo",
+    "Monte Carlo ensemble over parameter distributions. Pass `scenario` "
+    "(base dict), `distributions` (name -> {dist, ...}), optional "
+    "`n_samples` (default 200), `engine` ('surrogate' or 'solver', default "
+    "surrogate), and `seed`. Returns 8x8 P10/P50/P90 temperature previews "
+    "and per-draw scalar summaries.",
+    {
+        "scenario": dict,
+        "distributions": dict,
+        "n_samples": int,
+        "engine": str,
+        "seed": int,
+    },
+)
+async def monte_carlo_tool(args: dict[str, Any]) -> dict[str, Any]:
+    scenario = args.get("scenario") or {}
+    distributions = args.get("distributions") or {}
+    n_samples = int(args.get("n_samples", 200))
+    engine = str(args.get("engine", "surrogate"))
+    seed = int(args["seed"]) if "seed" in args else 0
+    result = _mc_run(
+        scenario,
+        distributions,
+        n_samples=n_samples,
+        engine=engine,
+        seed=seed,
+    )
+    return {"content": [{"type": "text", "text": json.dumps(_serialize_mc_result(result))}]}
+
+
+@tool(
+    "sensitivity_oat",
+    "One-at-a-time sensitivity sweep. Pass `scenario`, `params` (name -> "
+    "{low, high}), optional `n_points` (default 5), `engine` ('surrogate' "
+    "or 'solver'), `metric` ('probe_temperature_C', 'mean_temperature_C', "
+    "'min_temperature_C', 'max_temperature_C', 'mean_pressure_MPa'), and "
+    "probe_x_m/probe_y_m if using probe_temperature_C. Returns per-parameter "
+    "sweep curves plus a ranking by |Δmetric|.",
+    {
+        "scenario": dict,
+        "params": dict,
+        "n_points": int,
+        "engine": str,
+        "metric": str,
+        "probe_x_m": float,
+        "probe_y_m": float,
+    },
+)
+async def sensitivity_tool(args: dict[str, Any]) -> dict[str, Any]:
+    scenario = args.get("scenario") or {}
+    params = args.get("params") or {}
+    kwargs: dict[str, Any] = {
+        "engine": str(args.get("engine", "surrogate")),
+        "n_points": int(args.get("n_points", 5)),
+        "metric": str(args.get("metric", "probe_temperature_C")),
+    }
+    if "probe_x_m" in args:
+        kwargs["probe_x_m"] = float(args["probe_x_m"])
+    if "probe_y_m" in args:
+        kwargs["probe_y_m"] = float(args["probe_y_m"])
+    result = _sens_run(scenario, params, **kwargs)
+    # result is already LLM-sized; just round floats.
+    for name, curve in result["curves"].items():
+        curve["values"] = [round(float(v), 6) for v in curve["values"]]
+        curve["metric"] = [round(float(m), 4) for m in curve["metric"]]
+        curve["delta"] = round(float(curve["delta"]), 4)
+        curve["slope_per_unit"] = round(float(curve["slope_per_unit"]), 4)
+    result["baseline_metric"] = round(float(result["baseline_metric"]), 4)
+    result["elapsed_seconds"] = round(float(result["elapsed_seconds"]), 4)
+    return {"content": [{"type": "text", "text": json.dumps(result)}]}
+
+
 def _load_env() -> None:
     repo_root = Path(__file__).resolve().parent.parent
     load_dotenv(repo_root / ".env")
@@ -187,7 +292,12 @@ def _load_env() -> None:
 def build_options() -> ClaudeAgentOptions:
     mcp_server = create_sdk_mcp_server(
         name="geoforce-tools",
-        tools=[predict_solver_tool, predict_surrogate_tool],
+        tools=[
+            predict_solver_tool,
+            predict_surrogate_tool,
+            monte_carlo_tool,
+            sensitivity_tool,
+        ],
     )
     return ClaudeAgentOptions(
         model=DEFAULT_MODEL,
@@ -196,8 +306,10 @@ def build_options() -> ClaudeAgentOptions:
         allowed_tools=[
             "mcp__geoforce__predict_solver",
             "mcp__geoforce__predict_surrogate",
+            "mcp__geoforce__monte_carlo",
+            "mcp__geoforce__sensitivity_oat",
         ],
-        max_turns=10,
+        max_turns=12,
     )
 
 

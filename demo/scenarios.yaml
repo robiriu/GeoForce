@@ -1,0 +1,124 @@
+# GeoForce demo scenarios
+#
+# Each scenario has:
+#   - id:            short slug (used by /demo and the UI)
+#   - question:      natural-language prompt for the agent
+#   - engine:        recommended engine ("solver", "surrogate", or "either")
+#   - scenario:      plain dict matching the schema consumed by
+#                    tools.predict_solver.predict() and
+#                    tools.predict_surrogate.predict().
+#   - probe:         (optional) {x_m, y_m} for drill-site questions
+#   - uq:            (optional) Monte Carlo distributions for the uq tools
+#
+# Grid convention: i ↔ x-axis, j ↔ y-axis. Cell (i,j) center is
+# ((i+0.5)*dx, (j+0.5)*dy). All coordinates in meters unless stated.
+
+scenarios:
+
+  - id: q1_drill_temperature
+    question: >
+      If I drill at x=200 m, y=100 m, what reservoir temperature will I hit
+      after 1 year of 0.5 kg/s cold water reinjection at x=50 m, y=100 m?
+    engine: solver
+    probe:
+      x_m: 200.0
+      y_m: 100.0
+    scenario:
+      nx: 40
+      ny: 20
+      dx: 10.0
+      dy: 10.0
+      porosity: 0.12
+      permeability: 5.0e-13
+      rho_rock: 2500.0
+      cp_rock: 1000.0
+      lam_rock: 2.5
+      T_initial: 200.0
+      P_initial: 1.5e7
+      dt: 5.25e5        # ~6.08 days, 60 steps ≈ 1 year
+      n_steps: 60
+      wells:
+        - i: 5
+          j: 10
+          mass_rate: 0.5
+          injection_temperature: 60.0
+
+  - id: q2_sustainable_mw
+    question: >
+      How many MW can this reservoir sustain for 20 years at a doublet
+      spacing of 200 m, with a 5 kg/s production well and matched
+      injector at 70°C? Give P10/P50/P90.
+    engine: surrogate
+    scenario:
+      nx: 32
+      ny: 32
+      dx: 12.5
+      dy: 12.5
+      porosity: 0.12
+      log_permeability: -12.3
+      base_pressure: 1.5e7
+      depth: 1500.0
+      T_initial: 220.0
+      wells:
+        - i: 8          # injector at ~100 m
+          j: 16
+          mass_rate: 5.0
+          injection_temperature: 70.0
+        - i: 24         # producer at ~300 m (≈200 m spacing)
+          j: 16
+          mass_rate: -5.0
+    uq:
+      n_samples: 200
+      distributions:
+        porosity:
+          dist: uniform
+          low: 0.08
+          high: 0.18
+        log_permeability:
+          dist: uniform
+          low: -12.8
+          high: -11.8
+        T_initial:
+          dist: normal
+          mean: 220.0
+          std: 10.0
+      metrics:
+        - name: producer_temperature_C
+          at_well: 1           # producer well index
+        - name: reservoir_mean_T_C
+        - name: thermal_power_MW
+          formula: "abs(producer_mass_rate) * cp_water * (producer_T_C - 70.0) / 1e6"
+
+  - id: q3_well_placement
+    question: >
+      Where should I place the next 3 production wells in this 400 m x
+      400 m field to maximize 20-year cumulative heat extraction while
+      avoiding thermal breakthrough from the existing injector at
+      x=50 m, y=200 m?
+    engine: surrogate
+    scenario:
+      nx: 32
+      ny: 32
+      dx: 12.5
+      dy: 12.5
+      porosity: 0.12
+      log_permeability: -12.3
+      base_pressure: 1.5e7
+      depth: 1500.0
+      T_initial: 230.0
+      wells:
+        - i: 4            # existing injector at x~50m, y~200m
+          j: 16
+          mass_rate: 3.0
+          injection_temperature: 70.0
+    candidate_producers:
+      # (i, j) candidates the agent can search over
+      grid_stride: 4
+      min_distance_from_injector_m: 120.0
+      n_to_place: 3
+      mass_rate_per_well: -2.0
+    sensitivity:
+      param: log_permeability
+      low: -12.8
+      high: -11.8
+      n_points: 5
