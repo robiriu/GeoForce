@@ -4,6 +4,7 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { QueryInput } from "./components/QueryInput";
 import { AgentTrace } from "./components/AgentTrace";
 import { AnswerPanel } from "./components/AnswerPanel";
+import { FieldPanel } from "./components/FieldPanel";
 import { checkHealth, fetchScenarios } from "./api/client";
 import { useStore } from "./store";
 
@@ -27,6 +28,7 @@ export default function App() {
           <QueryInput />
         </div>
         <div className="stack" style={{ gap: "var(--space-6)" }}>
+          <FieldPanel />
           <AnswerPanel />
           <AgentTrace />
         </div>

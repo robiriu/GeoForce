@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import type { AgentEvent, Scenario } from "./api/client";
+import { predictFields } from "./api/client";
+import type { AgentEvent, PredictResponse, Scenario } from "./api/client";
 
 export type TraceItem =
   | { kind: "text"; text: string }
@@ -15,6 +16,10 @@ type State = {
   running: boolean;
   error: string | null;
 
+  fields: PredictResponse | null;
+  fieldsLoading: boolean;
+  fieldsError: string | null;
+
   setScenarios: (s: Scenario[]) => void;
   selectScenario: (id: string) => void;
   setQuery: (q: string) => void;
@@ -22,6 +27,7 @@ type State = {
   pushEvent: (e: AgentEvent) => void;
   endRun: () => void;
   setError: (msg: string | null) => void;
+  loadFields: (scenarioId: string) => Promise<void>;
 };
 
 export const useStore = create<State>((set, get) => ({
@@ -33,6 +39,10 @@ export const useStore = create<State>((set, get) => ({
   stopReason: null,
   running: false,
   error: null,
+
+  fields: null,
+  fieldsLoading: false,
+  fieldsError: null,
 
   setScenarios: (s) => {
     const first = s[0]?.id ?? null;
@@ -80,4 +90,18 @@ export const useStore = create<State>((set, get) => ({
 
   endRun: () => set({ running: false }),
   setError: (msg) => set({ error: msg }),
+
+  loadFields: async (scenarioId) => {
+    set({ fieldsLoading: true, fieldsError: null });
+    try {
+      const res = await predictFields(scenarioId, "both");
+      set({ fields: res, fieldsLoading: false });
+    } catch (err) {
+      set({
+        fields: null,
+        fieldsLoading: false,
+        fieldsError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  },
 }));

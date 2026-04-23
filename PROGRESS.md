@@ -31,45 +31,45 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [x] `tests/test_surrogate_smoke.py` green — 5/5 pass, 1.7s total
 - [x] Claude scaffolding discoverable (subagents + skills load; `surrogate-operator.md` corrected to match real v1.1 encoding)
 
-### Afternoon (4h) — Agent team builds GeoForce-Solver
-- [ ] `solver/properties.py` — IAPWS-IF97 wrappers
-- [ ] `solver/grid.py` — 2D vertical section structured grid
-- [ ] `solver/darcy.py` — pressure solver
-- [ ] `solver/energy.py` — heat solver
-- [ ] `solver/wells.py` — source terms
-- [ ] `solver/coupled.py` — implicit backward-Euler
-- [ ] `solver/benchmarks/theis.py` — analytical pressure
-- [ ] `solver/benchmarks/conduction_1d.py` — analytical temperature
-- [ ] `tests/test_solver_theis.py` passes (<5% error)
-- [ ] `tests/test_solver_conduction.py` passes (<5% error)
+### Afternoon (4h) — Agent team builds GeoForce-Solver — COMPLETE 2026-04-23
+- [x] `solver/properties.py` — IAPWS-IF97 wrappers
+- [x] `solver/grid.py` — 2D vertical section structured grid
+- [x] `solver/darcy.py` — pressure solver
+- [x] `solver/energy.py` — heat solver
+- [x] `solver/wells.py` — source terms
+- [x] `solver/coupled.py` — implicit backward-Euler
+- [x] `solver/benchmarks/theis.py` — analytical pressure
+- [x] `solver/benchmarks/conduction_1d.py` — analytical temperature
+- [x] `tests/test_solver_theis.py` passes (<5% error)
+- [x] `tests/test_solver_conduction.py` passes (<5% error)
 
-### Evening (2h) — CHECKPOINT + wiring
-- [ ] **GO/NO-GO checkpoint:** both analytical tests green?
-- [ ] `tools/predict_solver.py` + `tools/predict_surrogate.py`
-- [ ] `agent/runtime.py` — claude-agent-sdk boot
-- [ ] CLI answers Q1 end-to-end
-- [ ] Commit + push — **milestone: both engines live**
+### Evening (2h) — CHECKPOINT + wiring — COMPLETE 2026-04-23
+- [x] **GO/NO-GO checkpoint:** both analytical tests green → GO
+- [x] `tools/predict_solver.py` + `tools/predict_surrogate.py`
+- [x] `agent/runtime.py` — claude-agent-sdk boot
+- [x] CLI answers Q1 end-to-end
+- [x] Commit + push — **milestone: both engines live**
 
 ## Day 2 — Polish + demo + ship
 
-### Morning (3h) — Backend + Streamlit fallback
-- [ ] `agent/api.py` — FastAPI + SSE
-- [ ] `app/app.py` — Streamlit fallback (<200 lines)
-- [ ] `demo/scenarios.yaml` — Q1, Q2, Q3
-- [ ] `tools/monte_carlo.py` + `tools/sensitivity.py`
+### Morning (3h) — Backend + Streamlit fallback — COMPLETE 2026-04-23
+- [x] `agent/api.py` — FastAPI + SSE (+ `/predict`, + SPA static mount)
+- [x] `app/app.py` — Streamlit fallback
+- [x] `demo/scenarios.yaml` — Q1, Q2, Q3
+- [x] `tools/monte_carlo.py` + `tools/sensitivity.py`
 
-### Afternoon (4h) — React dashboard
-- [ ] `dashboard/` scaffold (Vite+TS)
-- [ ] `tokens.css` from claude-design-system skill
-- [ ] Components: Header, QueryInput, ScenarioPicker, AgentTrace, FieldPlot, UQOverlay, AnswerPanel
-- [ ] `api/client.ts` SSE consumer
-- [ ] matplotlib rc params aligned with Claude palette
-- [ ] Dry-run 3 scenarios through dashboard
-- [ ] `Dockerfile` multi-stage
+### Afternoon (4h) — React dashboard — COMPLETE 2026-04-23
+- [x] `dashboard/` scaffold (Vite+TS+zustand)
+- [x] `tokens.css` from claude-design-system skill
+- [x] Components: Header, QueryInput, ScenarioPicker, AgentTrace, AnswerPanel, FieldPlot, FieldPanel
+- [x] `api/client.ts` SSE consumer + `predictFields` helper
+- [x] Canvas-based magma heatmap (no plotly — bundle stays <160 kB)
+- [x] Dry-run 3 scenarios through `/predict` + SSE smoke of `/query`
+- [x] `Dockerfile` multi-stage (node build → python runtime, CPU-only torch)
 
 ### Evening (3h) — Ship
 - [ ] Deploy to HF Spaces (Dockerfile space)
-- [ ] `README.md` + architecture diagram
+- [x] Root `README.md` + ASCII architecture diagram
 - [ ] 90s demo video (recorded against React dashboard)
 - [ ] `demo/brady_validation.ipynb` (compressed)
 - [ ] Tag `v0.1-hackathon` + submit via Cerebral Valley portal
@@ -112,4 +112,10 @@ If either analytical-benchmark test fails:
 
 ## Blocker Log
 
-_(empty — populate as blockers arise)_
+- **2026-04-23** — Solver pressure output for `q1_drill_temperature` and
+  `q3_well_placement` reports values ~10² MPa after the unit conversion,
+  which is physically implausible (reservoir should stay around 15 MPa
+  with the small doublet stress). The `/predict` endpoint itself works;
+  the issue is either a unit in the solver output dict or boundary
+  treatment in `solver.coupled`. Flagged for the reviewer agent before
+  the demo video is recorded.

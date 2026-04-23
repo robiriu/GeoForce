@@ -396,3 +396,116 @@ All original code in this repo is MIT-licensed. Citations are in code comments w
 ---
 
 *Last updated: 2026-04-23 — end of scaffolding phase, before Day 1 execution begins.*
+
+---
+
+## 15. Day-2 Build Log — 2026-04-23
+
+### 15.1 UQ tools
+
+`tools/monte_carlo.py` and `tools/sensitivity.py` landed early on Day 2.
+The Monte-Carlo tool draws `n_samples` from per-parameter distributions
+declared in `demo/scenarios.yaml`, runs the surrogate in a tight loop
+(each call is ~200 ms → 200 samples in ~40 s), and returns P10/P50/P90
+per metric. The sensitivity tool does classical one-at-a-time sweeps
+around a base scenario so the agent can report "permeability dominates
+reservoir-mean T, porosity is noise."
+
+Both tools are exposed to the agent as `mcp__geoforce__monte_carlo` and
+`mcp__geoforce__sensitivity_oat`, so the planner chooses between them
+based on whether the user asks *how confident* (MC) or *what matters
+most* (OAT).
+
+### 15.2 FastAPI + SSE backend
+
+`agent/api.py` wraps the `claude-agent-sdk` client in an
+`EventSourceResponse` and emits four SSE event kinds — `text`, `tool`,
+`result`, `error`. The shape of those events is documented in the file
+header so the React client has a schema to code against.
+
+Why SSE and not WebSockets: the agent stream is one-way, browsers
+auto-reconnect SSE for free, and the native `EventSource` API would
+have been ideal — except it only supports `GET`. We POST the body, so
+the client uses `fetch` + `ReadableStream.getReader()` + a manual SSE
+parser (`parseSSEChunk` in `dashboard/src/api/client.ts`).
+
+Added a `/predict` endpoint that runs solver and/or surrogate
+synchronously and returns the full temperature and pressure arrays as
+JSON. The UI uses this to render the side-by-side heatmap; the agent
+can also call it indirectly through its MCP tools.
+
+### 15.3 React dashboard
+
+The visual differentiator for a hackathon with ~200 submissions is
+almost always the UI. Given the "Built with Opus 4.7" framing, the
+dashboard deliberately looks like a Claude artifact — warm
+`#F5F4EE` paper, Clay `#CC785C` accent, Source Serif 4 headings with
+italic captions, Inter body, JetBrains Mono for the tool-call preview.
+No component library, no Tailwind: plain CSS variables in
+`src/styles/tokens.css`, then utility classes in `global.css`.
+
+State lives in a single zustand store. The agent trace coalesces
+adjacent `text` events into one rendered block so the streamed prose
+reads continuously instead of flickering per-token. Tool calls render
+as a Clay-bordered card showing the stripped tool name
+(`predict_solver`, not `mcp__geoforce__predict_solver`) and a truncated
+JSON preview.
+
+For the temperature-field visualization I chose a canvas-based 12-stop
+magma colormap in `src/viz/magma.ts` rather than pulling in plotly
+(~600 kB). It renders the 32×32 or 40×20 grid at ~1 ms per paint and
+keeps the total bundle at ~155 kB JS / 3.5 kB CSS. The solver and
+surrogate plots share a `tMin`/`tMax` computed from both arrays so the
+color comparison is honest, and a mono chip shows `Δ Tmax` as a
+headline disagreement metric.
+
+### 15.4 Docker
+
+Multi-stage `Dockerfile`: `node:20-bookworm-slim` builds the Vite
+bundle, then `python:3.11-slim-bookworm` installs CPU-only torch from
+the PyTorch wheel index (much smaller than the default CUDA wheel) and
+the rest of the FastAPI/agent dependencies by explicit pin rather than
+`pip install -e .` (so the layer caches cleanly). The built dashboard
+is copied into `/app/dashboard/dist` and `agent.api` auto-detects it
+and mounts `/assets` + `/` for SPA serving. Single port, single
+container, `HEALTHCHECK` on `/health`.
+
+### 15.5 Dry-run — 2026-04-23
+
+Backend restarted on `:8765`. `/predict` roundtrips all three
+scenarios:
+
+| scenario | solver T range | surrogate T range | solver elapsed | surrogate elapsed |
+| --- | --- | --- | --- | --- |
+| q1_drill_temperature | 60.1–277.5 °C | 188.7–205.1 °C | 3.56 s | 0.22 s |
+| q2_sustainable_mw | 70.0–220.0 °C | 213.0–229.7 °C | 4.07 s | 0.004 s |
+| q3_well_placement | 70.1–610.5 °C | 221.8–241.0 °C | 4.58 s | 0.15 s |
+
+Surrogate is two to three orders of magnitude faster, which is exactly
+why the agent should fan MC sweeps through it and only invoke the
+solver for the authoritative field.
+
+Two physics concerns surfaced (logged in `PROGRESS.md` blocker log):
+
+- Solver pressure output for q1/q3 is ~10² MPa after unit conversion —
+  suggests either a unit mismatch in `solver.coupled`'s output dict or a
+  boundary-condition issue that lets pressure blow up. Must be fixed
+  before the demo video.
+- q3 solver T tops 610 °C, well above `T_initial = 220 °C`. That's
+  non-physical for a producer-only extraction and suggests the well
+  source term is over-applied. Also pre-demo.
+
+SSE end-to-end confirmed by POSTing a short natural-language query and
+seeing `event: text` / `event: result` stream back as expected.
+
+### 15.6 Discipline notes
+
+What we deliberately did **not** build:
+
+- A third engine. The thesis is solver + surrogate; adding anything
+  else dilutes it.
+- A component library. Every card, chip, and button is a `<div>` with a
+  CSS class.
+- Plotly / chart.js / d3. Canvas + 40 lines of TypeScript did the job.
+- Two-phase flow. Out of scope per `CLAUDE.md` §2.
+

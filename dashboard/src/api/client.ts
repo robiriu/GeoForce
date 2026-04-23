@@ -20,6 +20,36 @@ export type AgentEvent =
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
+export type FieldResult = {
+  grid: { nx: number; ny: number; dx: number; dy: number };
+  temperature: number[][];
+  pressure: number[][];
+  t_min: number;
+  t_max: number;
+  p_min_MPa: number;
+  p_max_MPa: number;
+  elapsed_seconds: number;
+};
+
+export type PredictResponse = {
+  engine: "both" | "solver" | "surrogate";
+  solver?: FieldResult;
+  surrogate?: FieldResult;
+};
+
+export async function predictFields(
+  scenario_id: string,
+  engine: "both" | "solver" | "surrogate" = "both",
+): Promise<PredictResponse> {
+  const res = await fetch(`${API_BASE}/predict`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario_id, engine }),
+  });
+  if (!res.ok) throw new Error(`predict: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchScenarios(): Promise<Scenario[]> {
   const res = await fetch(`${API_BASE}/scenarios`);
   if (!res.ok) throw new Error(`scenarios: ${res.status}`);
