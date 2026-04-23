@@ -509,3 +509,98 @@ What we deliberately did **not** build:
 - Plotly / chart.js / d3. Canvas + 40 lines of TypeScript did the job.
 - Two-phase flow. Out of scope per `CLAUDE.md` §2.
 
+---
+
+## 16. Day-2 Evening — Ship — 2026-04-23
+
+### 16.1 Physics blocker resolved
+
+Afternoon dry-run surfaced two anomalies: solver pressure on q1 /
+q3 reading ~10² MPa (physically absurd — reservoir should stay around
+15 MPa) and a 610 °C temperature excursion on q3 (above T_initial). I
+thought it was a unit or boundary-condition bug. It wasn't.
+
+Root cause: both scenarios had injection wells with no matching
+outlet, inside a closed-boundary domain. The Darcy solver conserves
+mass via compressibility storage (`V·φ·c_t·dP/dt`), so injected mass
+can only be absorbed by raising pressure — indefinitely, since
+`c_t ≈ 1e-9 1/Pa` gives tiny volumetric capacity. Integrating
+q_mass / (ρ·V·φ·c_t) over the run time reproduces the observed ~10²
+MPa. The 610 °C on q3 was the same pathology once-removed: huge
+pressure gradients drove implausible face fluxes, and the implicit
+upwind advection did the best it could with an unphysical mass
+balance.
+
+Fix was in the YAML, not the code — add a far-field producer to q1
+and a baseline producer to q3 so the net mass flux into the domain is
+zero. Re-dry-run gave clean numbers:
+
+| scenario | solver T | surrogate T | ΔTmax | solver P (MPa) |
+| --- | --- | --- | --- | --- |
+| q1 | 60.0–200.0 °C | 188.7–205.1 °C | 5.1 °C | 14.81–15.19 |
+| q2 | 70.0–220.0 °C | 213.0–229.7 °C | 9.8 °C | 13.86–16.11 |
+| q3 | 70.0–230.0 °C | 221.8–241.0 °C | 11.0 °C | 14.19–15.78 |
+
+Every T stays inside `[T_inj, T_initial]` (max principle holds),
+every P stays inside ±1 MPa of the base. The analytical benchmarks
+were never wrong; the scenarios were just ill-posed.
+
+Lesson for the JOURNAL: the dual-engine dashboard design paid off
+instantly. The Δ-Tmax chip made the q1 / q3 anomaly visually
+obvious, which is exactly what the two-engine thesis was supposed to
+enable. If this had been solver-only I would have shipped wrong
+numbers without noticing.
+
+### 16.2 Validation notebook
+
+Original plan was a "Brady validation cameo". No Brady dataset was
+actually available in the ForceX-AI archive — the reference in
+HACKATHON-PLAN.md was aspirational. Rather than fabricate something,
+I pivoted to an honest in-repo validation: `demo/validation.ipynb`
+re-runs the two analytical gates (Theis 0.38 %, 1-D conduction
+0.18 %) and the solver↔surrogate ΔT table above, each from first
+principles in a single notebook. Whole notebook executes in under a
+minute on CPU.
+
+### 16.3 Hugging Face Spaces deploy
+
+Target space: `robiriu/geoforce`, Docker SDK, port 8765 via
+`app_port` in the README frontmatter. First push was rejected for two
+reasons in sequence:
+
+1. `surrogate/weights/geoforce_cnn_v1.1.pt` (244 kB binary) — HF
+   requires binaries via Xet / LFS.
+2. `short_description` > 60 characters.
+
+Rather than rewrite the main branch's history, I created a
+throw-away `hf-deploy` branch and ran
+`git lfs migrate import --include="*.pt" --include-ref=refs/heads/hf-deploy`
+on it. Main stays a clean fast-forward ancestor of origin/main;
+the LFS-rewritten commits live only on `hf-deploy` and are pushed to
+the Space's `main`. Second push succeeded. Space built on the first
+try (Docker layer cache and all) — runtime stage `RUNNING` within a
+few minutes.
+
+The build still needs an `ANTHROPIC_API_KEY` Space secret for
+`/query` — that's a user-only step (I do not handle their keys).
+
+### 16.4 Tag + submission
+
+Tagged `v0.1-hackathon` locally with a manifest of what's included
+(benchmarks, subagents, dashboard, SSE, HF URL). Not pushed yet —
+intentionally leaving the GitHub push and the Cerebral Valley
+submission as user-gated actions.
+
+### 16.5 What I'd do with a Day 3
+
+- A real field cameo. NREL's EGS Collab datasets are public and
+  would actually exercise the solver.
+- TVD / flux-limited advection. First-order upwind diffuses
+  cold-fronts too much on low-porosity, low-permeability cases.
+- Streamline ensembles for UQ instead of full-field Monte Carlo —
+  10× faster and qualitatively as informative for P10 / P50 / P90.
+- MCP-expose GeoForce-Solver and v1.1 surrogate so any Claude Code
+  user can `/install` the engines directly.
+
+*Last updated: 2026-04-23 — end of Day 2 evening, v0.1-hackathon tagged.*
+
