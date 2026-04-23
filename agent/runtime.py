@@ -41,7 +41,7 @@ from tools.predict_solver import predict as _solver_predict
 from tools.predict_surrogate import predict as _surrogate_predict
 from tools.sensitivity import run as _sens_run
 
-DEFAULT_MODEL = "claude-opus-4-6"
+DEFAULT_MODEL = "claude-opus-4-7"
 
 SYSTEM_PROMPT = """You are GeoForce, an Indonesian geothermal reservoir engineering agent.
 
