@@ -1,3 +1,15 @@
+---
+title: GeoForce
+emoji: 🌋
+colorFrom: red
+colorTo: gray
+sdk: docker
+app_port: 8765
+pinned: true
+license: mit
+short_description: Opus 4.7 agent orchestrates a geothermal solver + CNN surrogate.
+---
+
 # GeoForce
 
 > **Opus 4.7 agents orchestrate two engines — a newly-built open-source

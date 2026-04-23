@@ -38,10 +38,13 @@ scenarios:
       dt: 5.25e5        # ~6.08 days, 60 steps ≈ 1 year
       n_steps: 60
       wells:
-        - i: 5
+        - i: 5            # injector at x~55 m
           j: 10
           mass_rate: 0.5
           injection_temperature: 60.0
+        - i: 35           # far-field producer, closes mass balance
+          j: 10           #   (the field usually has an open outlet;
+          mass_rate: -0.5 #    without one, compressibility drives P → ∞)
 
   - id: q2_sustainable_mw
     question: >
@@ -111,6 +114,11 @@ scenarios:
           j: 16
           mass_rate: 3.0
           injection_temperature: 70.0
+        # Solver requires a mass sink for the /predict baseline render;
+        # the agent's actual job is to decide WHERE new producers go.
+        - i: 28           # baseline producer (far corner from injector)
+          j: 16
+          mass_rate: -3.0
     candidate_producers:
       # (i, j) candidates the agent can search over
       grid_stride: 4
