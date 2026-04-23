@@ -29,7 +29,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.2.2 \
  && pip install --no-cache-dir \
-        "numpy>=1.26" "scipy>=1.12" "iapws>=1.5.3" \
+        "numpy>=1.26,<2" "scipy>=1.12,<1.14" "iapws>=1.5.3" \
         "matplotlib>=3.8" "pyyaml>=6.0" "python-dotenv>=1.0" \
         "claude-agent-sdk>=0.1.0" "anthropic>=0.40.0" \
         "fastapi>=0.110" "uvicorn[standard]>=0.29" "sse-starlette>=2.0"
