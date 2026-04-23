@@ -17,7 +17,7 @@ The entry point is the **planner** subagent. It decomposes the query and fans ou
 
 ---
 
-## The Team (7 Subagents)
+## The Team (8 Subagents)
 
 ```
                   ┌───────────────────────┐
@@ -120,6 +120,18 @@ The entry point is the **planner** subagent. It decomposes the query and fans ou
 - Flag physics violations explicitly in the answer
 **Tools:** Read
 
+### 8. ui-engineer
+**File:** `.claude/agents/ui-engineer.md`
+**When:** building or editing the React dashboard (`dashboard/`) or the Streamlit fallback (`app/`)
+**Responsibilities:**
+- React+Vite+TS dashboard: query box, live agent trace, dual-engine plots, UQ overlay
+- FastAPI backend (`agent/api.py`) with SSE stream
+- Streamlit fallback (`app/app.py`) as safety net
+- Apply Anthropic visual design language via the `claude-design-system` skill
+- Dockerfile for HF Spaces deployment
+**Skills used:** `claude-design-system`, `field-visualization` (for plot output consumption)
+**Tools:** Read, Write, Edit, Glob, Grep, Bash
+
 ---
 
 ## Parallel vs Sequential Execution
@@ -208,6 +220,27 @@ This architecture directly maps to the "**Best use of Claude Managed Agents**" p
 Judges can inspect any single `.md` file to understand what that agent does, what tools it has, and how it's invoked.
 
 ---
+
+## UI Agent Flow (Day 2)
+
+The ui-engineer runs **outside** the per-query pipeline. It builds and maintains the presentation surfaces, not individual query answers. Interaction model:
+
+```
+Day 2 morning:
+  ui-engineer → scaffolds dashboard/ (React+Vite) and app/ (Streamlit)
+  ui-engineer → applies claude-design-system tokens
+  ui-engineer → wires agent/api.py FastAPI + SSE stream
+
+Day 2 afternoon:
+  User in dashboard → types query → POST /query → SSE streams:
+    ├── planner events (DAG decomposition)
+    ├── specialist events (geologist, solver, surrogate, uq, visualizer)
+    ├── reviewer event (final gate)
+    └── final answer
+  Dashboard renders each event as it arrives (trace panel + plot cards)
+```
+
+The ui-engineer is explicitly *not* invoked mid-query. It's a build-phase specialist whose output (dashboard) is the rendering surface for every other agent's work.
 
 ## Adding a New Agent
 

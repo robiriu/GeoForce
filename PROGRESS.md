@@ -14,8 +14,8 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [x] Hackathon research complete (rules, prizes, Discord, prior winners)
 - [x] HACKATHON-PLAN.md v2 (dual-tool pivot) committed
 - [x] CLAUDE.md, AGENTS.md, PROGRESS.md scaffolded
-- [x] `.claude/` subagents defined (7)
-- [x] `.claude/` skills defined (4)
+- [x] `.claude/` subagents defined (8)
+- [x] `.claude/` skills defined (5)
 - [x] `.claude/` commands defined (4)
 - [x] `.claude/settings.json` — model pinned to `claude-opus-4-7`
 - [ ] Fresh `.venv` + `pyproject.toml`
@@ -51,22 +51,31 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 
 ## Day 2 — Polish + demo + ship
 
-### Morning (3h)
-- [ ] `app/app.py` — Streamlit UI
-- [ ] `demo/scenarios.yaml` — Q1, Q2, Q3 scenarios
-- [ ] Tune agent prompts for crisp answers
+### Morning (3h) — Backend + Streamlit fallback
+- [ ] `agent/api.py` — FastAPI + SSE
+- [ ] `app/app.py` — Streamlit fallback (<200 lines)
+- [ ] `demo/scenarios.yaml` — Q1, Q2, Q3
 - [ ] `tools/monte_carlo.py` + `tools/sensitivity.py`
 
-### Afternoon (3h)
-- [ ] `demo/brady_validation.ipynb` — NREL Brady side-by-side
-- [ ] `README.md` — full write-up
-- [ ] 90s demo video
-- [ ] Tag `v0.1-hackathon`
-- [ ] Submit via Cerebral Valley portal
+### Afternoon (4h) — React dashboard
+- [ ] `dashboard/` scaffold (Vite+TS)
+- [ ] `tokens.css` from claude-design-system skill
+- [ ] Components: Header, QueryInput, ScenarioPicker, AgentTrace, FieldPlot, UQOverlay, AnswerPanel
+- [ ] `api/client.ts` SSE consumer
+- [ ] matplotlib rc params aligned with Claude palette
+- [ ] Dry-run 3 scenarios through dashboard
+- [ ] `Dockerfile` multi-stage
 
-### Evening (2h stretch)
-- [ ] Deploy Streamlit (HF Spaces / Fly.io)
-- [ ] `.mcp.json` for MCP-exposed GeoForce-Solver
+### Evening (3h) — Ship
+- [ ] Deploy to HF Spaces (Dockerfile space)
+- [ ] `README.md` + architecture diagram
+- [ ] 90s demo video (recorded against React dashboard)
+- [ ] `demo/brady_validation.ipynb` (compressed)
+- [ ] Tag `v0.1-hackathon` + submit via Cerebral Valley portal
+
+### Stretch (only if all above shipped)
+- [ ] `.mcp.json` exposing GeoForce-Solver via MCP
+- [ ] Two-phase stub (saturation variable plumbing, no flash)
 
 ---
 
@@ -93,6 +102,9 @@ If either analytical-benchmark test fails:
 | 2026-04-23 | Solver renamed TinyTOUGH → GeoForce-Solver | user |
 | 2026-04-23 | Two-phase: single-phase for Day 1; optional stub Day 2 evening only if solver green + submitted | user |
 | 2026-04-23 | Demo framing: Ulubelu-inspired synthetic (liquid-dominated, on-brand) | user approved claude recommendation |
+| 2026-04-23 | Demo UI: React dashboard (primary) + Streamlit (fallback), Claude design language, HF Spaces Dockerfile deploy | user |
+| 2026-04-23 | Added 8th subagent: ui-engineer | claude (per user request) |
+| 2026-04-23 | Added 5th skill: claude-design-system | claude (per user request) |
 
 ---
 

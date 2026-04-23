@@ -32,7 +32,7 @@ See `HACKATHON-PLAN.md` for full plan, `AGENTS.md` for runtime architecture.
 
 ## 3. Multi-Agent Orchestration Pattern
 
-This project is built around 7 subagents defined in `.claude/agents/`:
+This project is built around 8 subagents defined in `.claude/agents/`:
 
 | Subagent | Purpose |
 |---|---|
@@ -43,6 +43,7 @@ This project is built around 7 subagents defined in `.claude/agents/`:
 | `uq-specialist` | Monte Carlo + sensitivity (via `monte-carlo-uq` skill) |
 | `visualizer` | Renders T/P fields + UQ bands (via `field-visualization` skill) |
 | `reviewer` | Physics sanity check; gates outputs |
+| `ui-engineer` | React dashboard + Streamlit fallback (via `claude-design-system` skill) |
 
 **When to invoke a subagent:**
 - Subagents are invoked via the `Agent` tool, using their `subagent_type` name.
@@ -64,6 +65,7 @@ Defined under `.claude/skills/`:
 | `monte-carlo-uq` | Sample parameter distributions and aggregate ensembles | User asks for uncertainty, P10/P50/P90, "how confident" |
 | `field-visualization` | Render 2D heatmap with optional UQ bands | Plotting T or P field |
 | `analytical-benchmarks` | Theis + 1D conduction solutions for solver validation | Verifying `solver/` correctness |
+| `claude-design-system` | Anthropic visual design tokens + patterns for React dashboard | Any styling decision in `dashboard/` — colors, typography, spacing, components |
 
 Skills are the **user-invocable tooling layer**. Agents call them through natural language references. Keep skills idempotent and side-effect-free wherever possible.
 
@@ -84,6 +86,8 @@ Defined under `.claude/commands/`:
 
 - **Python 3.11+.** Type hints everywhere. `from __future__ import annotations` at top of new files.
 - **NumPy/SciPy** for numerics. **PyTorch** only for surrogate inference.
+- **Dashboard:** React 18 + Vite + TypeScript + plain CSS modules with the `claude-design-system` tokens. No Material/Chakra/Ant/shadcn/Tailwind unless already in a port. Allowed additions: `zod`, `zustand`, `plotly.js`.
+- **Backend API** for dashboard: FastAPI in `agent/api.py`, SSE for streaming agent trace.
 - **Tests first for `solver/`** — never merge solver code without an analytical-benchmark test.
 - **Normalization constants for the surrogate are frozen** — see `surrogate/encoding.py`. Do not change; they must match the v1.1 training exactly.
 - **Imports:** standard library → third-party → local. One blank line between groups.

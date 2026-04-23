@@ -54,7 +54,7 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
    - Q2: "How many MW can this reservoir sustain for 20 years?"
    - Q3: "Where should I place the next 3 production wells?"
 
-5. **Streamlit demo UI** — query box, agent trace panel, side-by-side engine output (Solver vs Surrogate)
+5. **Dual-surface demo UI** — primary: React dashboard styled with Anthropic's visual design language (warm paper bg, serif headings, Clay accent, live agent-trace stream via SSE, dual-engine plot cards, UQ overlay). Fallback: Streamlit single-page app. Dashboard deployed to HuggingFace Spaces as a Dockerfile space.
 
 6. **Validation cameo** — NREL Brady Hot Springs open dataset comparison (3h slot)
 
@@ -169,7 +169,27 @@ GeoForce-CCHackathon/
 │   ├── subagents.py                # programmatic subagent loader
 │   └── prompts.py
 ├── app/
-│   └── app.py                      # Streamlit entry
+│   └── app.py                      # Streamlit fallback (<200 lines)
+├── dashboard/                      # React + Vite + TS, Claude design
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx
+│       ├── styles/tokens.css       # Claude design tokens
+│       ├── styles/global.css
+│       ├── components/
+│       │   ├── Header.tsx
+│       │   ├── QueryInput.tsx
+│       │   ├── AgentTrace.tsx
+│       │   ├── FieldPlot.tsx
+│       │   ├── UQOverlay.tsx
+│       │   ├── ScenarioPicker.tsx
+│       │   └── AnswerPanel.tsx
+│       └── api/client.ts           # SSE consumer
+├── Dockerfile                      # multi-stage: Node build + Python runtime
 ├── tests/
 │   ├── test_solver_theis.py
 │   ├── test_solver_conduction.py
@@ -209,30 +229,38 @@ GeoForce-CCHackathon/
 
 ### Day 2 — Polish, demo, ship
 
-**Morning (3h) — UI + demo scenarios**
-- [ ] `app/app.py` Streamlit: query box, agent trace, dual-engine plots, UQ band
+**Morning (3h) — Backend + Streamlit fallback + demo scenarios**
+- [ ] `agent/api.py` — FastAPI wrapping `agent/runtime.py`, SSE for agent-trace stream, CORS
+- [ ] `app/app.py` Streamlit fallback (<200 lines, polls `/query`)
 - [ ] `demo/scenarios.yaml` — 3 hand-tuned demo queries (Q1, Q2, Q3)
-- [ ] Dry-run each through full agent pipeline; tune prompts
-- [ ] `tools/monte_carlo.py` + `tools/sensitivity.py` used in Q2 and Q3 respectively
+- [ ] `tools/monte_carlo.py` + `tools/sensitivity.py` wired into Q2/Q3
 
-**Afternoon (3h) — Brady validation + docs + video**
-- [ ] `demo/brady_validation.ipynb` — load Brady Hot Springs OSR scenario, run surrogate, plot side-by-side
+**Afternoon (4h) — React dashboard (ui-engineer + claude-design-system)**
+- [ ] `dashboard/` scaffolded with Vite+TS; `tokens.css` from `claude-design-system` skill
+- [ ] Components: Header, QueryInput, ScenarioPicker, AgentTrace (SSE), FieldPlot, UQOverlay, AnswerPanel
+- [ ] `dashboard/src/api/client.ts` — SSE consumer, zustand store
+- [ ] matplotlib rc params updated to match Claude palette
+- [ ] Dry-run 3 demo scenarios end-to-end through dashboard
+- [ ] `Dockerfile` multi-stage (Node build + Python runtime)
+
+**Evening (3h) — Ship**
+- [ ] Deploy to HuggingFace Spaces (Dockerfile space)
 - [ ] `README.md` — problem, architecture diagram, install/run, example queries, **honest limitations**
-- [ ] Record 90-second demo video (OBS/Loom)
-- [ ] Tag `v0.1-hackathon`, push, update repo description
-- [ ] **Hard stop here if behind schedule**
+- [ ] Record 90s demo video against the React dashboard (OBS/Loom)
+- [ ] `demo/brady_validation.ipynb` — compressed version (Brady load + side-by-side plot)
+- [ ] Tag `v0.1-hackathon`, push, submit via Cerebral Valley portal
 
-**Evening (2h) — stretch goals (only if on schedule)**
-- [ ] Deploy Streamlit to HuggingFace Spaces or Fly.io
+### Stretch goals (only if all above shipped)
 - [ ] Add `.mcp.json` exposing GeoForce-Solver as an MCP server
-- [ ] Submit via Cerebral Valley portal
 - [ ] **Two-phase stub** (optional): add a saturation-variable placeholder (`S_g` field, clamped to 0) and IAPWS-IF97 saturation-curve lookup in `solver/properties.py`. No flash logic. Signals to judges that the architecture extends to two-phase without claiming it works. Condition: only if Day 1 solver is green AND demo video is recorded AND submission is filed.
+- [ ] Polish README with architecture diagrams + Mermaid graphs
 
 ### Buffer / cut order if behind
-1. Drop HuggingFace deploy
-2. Drop Q3 (well-placement) — keep Q1, Q2
-3. Drop sensitivity tool — keep predict + Monte Carlo
-4. (Day 1 evening checkpoint): drop solver entirely → surrogate-only fallback
+1. Drop HuggingFace deploy (demo video shot locally instead)
+2. **Drop React dashboard** — record demo against Streamlit fallback
+3. Drop Q3 (well-placement) — keep Q1, Q2
+4. Drop sensitivity tool — keep predict + Monte Carlo
+5. (Day 1 evening checkpoint): drop solver entirely → surrogate-only fallback
 
 ## 6. Deliverables Checklist
 
@@ -257,6 +285,9 @@ GeoForce-CCHackathon/
 | **v1.1 weights don't load (torch skew)** | Medium | Surrogate broken | Smoke test is first task Day 1; if broken, retrain a tiny scratch CNN (backup plan) |
 | **Claude Agent SDK flaky on complex queries** | Medium | Agent loops fail | Keep tool schemas minimal, ≤3 tools per turn, timeout wrappers |
 | **Streamlit async/sync mismatch** | Low | UI stalls | Run agent synchronously, stream via `st.write_stream` |
+| **React dashboard build fails on HF Spaces** | Medium | No hosted demo | Dockerfile falls through to Streamlit CMD; record video locally |
+| **SSE streaming flakes in the browser** | Medium | Agent trace doesn't appear live | Dashboard polls `/query` every 500ms as fallback |
+| **Custom Claude design tokens clash with Plotly defaults** | Low | Ugly plot cards | Override Plotly theme with `plotly_white` + custom colorway using design tokens |
 | **Day 2 compresses into 1 day** | Medium | Cut demo scope | Buffer cut order in §5 |
 | **API quota burns during recording** | Low | Demo aborted | Record before HF deploy; $500 participant credits should be sufficient |
 | **Submission portal issues** | Low | Missed deadline | Submit at noon Day 2, not evening |
@@ -287,6 +318,7 @@ If either `test_solver_theis.py` or `test_solver_conduction.py` is **not green**
 3. **Phase:** single-phase water; two-phase cut as out-of-scope
 4. **Agent runtime:** `claude-agent-sdk` + `ANTHROPIC_API_KEY`
 5. **Demo framing:** **Ulubelu-inspired synthetic** — use the Ulubelu field name for on-brand Indonesian narrative, but parameters chosen so the single-phase, liquid-dominated assumption is honest (Ulubelu is 200–240°C, liquid-dominated). Avoids over-claiming vs real Pertamina data.
+8. **Demo UI:** React dashboard (primary) + Streamlit (fallback). React uses Anthropic visual design language via the `claude-design-system` skill. Deployed to HuggingFace Spaces via Dockerfile space.
 6. **Python env:** fresh `.venv` in repo root
 7. **Primary prize:** 1st place ($50K); Managed Agents ($5K) as safety net
 
