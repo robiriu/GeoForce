@@ -124,3 +124,11 @@ If either analytical-benchmark test fails:
   `demo/scenarios.yaml`. Re-ran all 3: temperature bounded by
   [T_inj, T_initial], pressure in ±1 MPa of base. Validation notebook
   confirms Theis and conduction gates still pass (0.38% / 0.18%).
+- **2026-04-24 — RESOLVED** — HF Space `/predict?engine=surrogate`
+  returned 500 after initial deploy. Root cause: HF Spaces Docker SDK
+  does not materialise LFS content in the build context, so the 248 kB
+  `.pt` file arrived as a text pointer stub. Added a Dockerfile RUN
+  step that detects the stub (`head -c 64 | grep '^version https://git-lfs'`)
+  and curls the real binary from the Space's own `/resolve/main/` URL.
+  Rebuild succeeded; all three endpoints (`/health`, solver, surrogate)
+  return 200 on the live Space.

@@ -602,5 +602,39 @@ submission as user-gated actions.
 - MCP-expose GeoForce-Solver and v1.1 surrogate so any Claude Code
   user can `/install` the engines directly.
 
-*Last updated: 2026-04-23 — end of Day 2 evening, v0.1-hackathon tagged.*
+### 16.6 Day-3 morning: LFS pointer stub in Docker build
+
+Post-deploy, `/predict?engine=surrogate` returned 500 on the live Space
+while `/health`, `/scenarios`, and `/predict?engine=solver` all worked.
+Root cause: HF Spaces' Docker SDK does **not** materialise LFS content
+into the build context. The Dockerfile's `COPY surrogate/ ./surrogate/`
+copied a 131-byte text pointer stub (`version https://git-lfs.github.com/...`)
+instead of the 248 kB binary — so `torch.load` failed at startup.
+
+Fix (committed on both branches, cherry-picked to `hf-deploy`): detect
+the pointer during the build and curl the real binary from the Space's
+own public resolve URL, which the HF CDN serves correctly (redirects to
+Xet storage):
+
+```dockerfile
+RUN f=surrogate/weights/geoforce_cnn_v1.1.pt && \
+    if head -c 64 "$f" | grep -q '^version https://git-lfs'; then \
+        curl -fsSL -o "$f" \
+          "https://huggingface.co/spaces/robiriu/geoforce/resolve/main/surrogate/weights/geoforce_cnn_v1.1.pt"; \
+    fi
+```
+
+Rebuild succeeded (~3 min). Live verification:
+
+| endpoint | result |
+|---|---|
+| `/health` | `{"ok":true}` |
+| `/predict solver` (q1) | shape (40,20), T∈[60,200]°C, 3.0s |
+| `/predict surrogate` (q1) | shape (32,32), T∈[188.7,205.1]°C, 4ms |
+
+**Lesson**: treat HF Spaces Docker SDK as "git-but-no-LFS" at build
+time. Runtime code can fetch LFS artefacts via `resolve/` URLs, but
+don't assume `COPY` will DTRT for binary blobs.
+
+*Last updated: 2026-04-24 — Day 3 morning, live Space fully functional on both engines.*
 
