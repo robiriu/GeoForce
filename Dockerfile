@@ -7,8 +7,8 @@ WORKDIR /app/dashboard
 COPY dashboard/package.json dashboard/package-lock.json* ./
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 COPY dashboard/ ./
-# Hit the FastAPI at the same origin in prod, no dev proxy.
-ENV VITE_API_BASE=/api
+# Same-origin FastAPI in prod — routes are unprefixed (no dev /api rewrite).
+ENV VITE_API_BASE=""
 RUN npm run build
 
 # ---------- Stage 2: Python runtime ----------
