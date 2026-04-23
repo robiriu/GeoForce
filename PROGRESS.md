@@ -67,12 +67,17 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [x] Dry-run 3 scenarios through `/predict` + SSE smoke of `/query`
 - [x] `Dockerfile` multi-stage (node build → python runtime, CPU-only torch)
 
-### Evening (3h) — Ship
-- [ ] Deploy to HF Spaces (Dockerfile space)
-- [x] Root `README.md` + ASCII architecture diagram
-- [ ] 90s demo video (recorded against React dashboard)
-- [ ] `demo/brady_validation.ipynb` (compressed)
-- [ ] Tag `v0.1-hackathon` + submit via Cerebral Valley portal
+### Evening (3h) — Ship — IN PROGRESS 2026-04-23
+- [x] Deploy to HF Spaces (Dockerfile space)
+  - live at https://huggingface.co/spaces/robiriu/geoforce (runtime: RUNNING)
+  - weights tracked via LFS on the `hf-deploy` branch; main stays clean
+  - user must set `ANTHROPIC_API_KEY` as a Space secret for `/query`
+- [x] Root `README.md` + ASCII architecture diagram (+ HF Spaces frontmatter)
+- [ ] 90s demo video (recorded against React dashboard) — user-only task
+- [x] `demo/validation.ipynb` (replaces Brady — Theis 0.38%, conduction 0.18%,
+       solver↔surrogate Δ Tmax for all 3 scenarios)
+- [x] Tag `v0.1-hackathon` (local; push when ready)
+- [ ] Submit via Cerebral Valley portal — user-only task
 
 ### Stretch (only if all above shipped)
 - [ ] `.mcp.json` exposing GeoForce-Solver via MCP
@@ -112,10 +117,10 @@ If either analytical-benchmark test fails:
 
 ## Blocker Log
 
-- **2026-04-23** — Solver pressure output for `q1_drill_temperature` and
-  `q3_well_placement` reports values ~10² MPa after the unit conversion,
-  which is physically implausible (reservoir should stay around 15 MPa
-  with the small doublet stress). The `/predict` endpoint itself works;
-  the issue is either a unit in the solver output dict or boundary
-  treatment in `solver.coupled`. Flagged for the reviewer agent before
-  the demo video is recorded.
+- **2026-04-23 — RESOLVED** — Solver pressure anomalies on q1/q3 traced
+  to scenarios having injection with no matching outlet (closed domain
+  + compressibility storage → P accumulates). Fixed by adding a
+  far-field producer to q1 and a baseline producer to q3 in
+  `demo/scenarios.yaml`. Re-ran all 3: temperature bounded by
+  [T_inj, T_initial], pressure in ±1 MPa of base. Validation notebook
+  confirms Theis and conduction gates still pass (0.38% / 0.18%).
