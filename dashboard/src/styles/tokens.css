@@ -1,0 +1,69 @@
+:root {
+  /* Surfaces — warm, paper-like */
+  --bg: #f5f4ee;
+  --bg-elevated: #faf9f5;
+  --bg-sunken: #eeece4;
+  --border-subtle: #e5e3da;
+  --border-strong: #cac6b8;
+
+  /* Text */
+  --fg: #1f1e1c;
+  --fg-muted: #6b6862;
+  --fg-subtle: #9a958b;
+
+  /* Accent — Clay */
+  --accent: #cc785c;
+  --accent-hover: #b8654b;
+  --accent-soft: #f2ddd2;
+
+  /* Semantic */
+  --success: #5a7a5a;
+  --warn: #b88a3e;
+  --danger: #b44a3a;
+  --info: #5f7a8c;
+
+  /* Data viz */
+  --viz-1: #cc785c;
+  --viz-2: #5f7a8c;
+  --viz-3: #7a8b5a;
+  --viz-4: #8a6b9c;
+  --viz-5: #b88a3e;
+
+  /* Typography */
+  --font-serif: "Source Serif 4", "Copernicus", Georgia, serif;
+  --font-sans: Inter, "Styrene B", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
+  --leading-loose: 1.75;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  /* Shadows (sparingly) */
+  --shadow-sm: 0 1px 2px rgba(31, 30, 28, 0.04);
+  --shadow-md: 0 4px 12px rgba(31, 30, 28, 0.06);
+}
