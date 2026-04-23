@@ -42,6 +42,18 @@ COPY tools/ ./tools/
 COPY demo/ ./demo/
 COPY app/ ./app/
 
+# HF Spaces Docker SDK does not materialise LFS content in the build
+# context — `surrogate/weights/geoforce_cnn_v1.1.pt` arrives as a pointer
+# stub. Replace it with the real binary fetched from the Space's own
+# public resolve URL (which redirects to Xet storage).
+RUN f=surrogate/weights/geoforce_cnn_v1.1.pt && \
+    if head -c 64 "$f" | grep -q '^version https://git-lfs'; then \
+        echo "Replacing LFS pointer with real weights…" && \
+        curl -fsSL -o "$f" \
+          "https://huggingface.co/spaces/robiriu/geoforce/resolve/main/surrogate/weights/geoforce_cnn_v1.1.pt" && \
+        ls -la "$f"; \
+    fi
+
 # Drop the built dashboard where FastAPI expects it.
 COPY --from=dashboard-build /app/dashboard/dist ./dashboard/dist
 
