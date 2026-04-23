@@ -7,7 +7,7 @@ sdk: docker
 app_port: 8765
 pinned: true
 license: mit
-short_description: Opus 4.7 agent orchestrates a geothermal solver + CNN surrogate.
+short_description: Agent-orchestrated geothermal solver + CNN surrogate.
 ---
 
 # GeoForce
