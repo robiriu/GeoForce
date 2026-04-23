@@ -15,7 +15,7 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [x] HACKATHON-PLAN.md v2 (dual-tool pivot) committed
 - [x] CLAUDE.md, AGENTS.md, PROGRESS.md scaffolded
 - [x] `.claude/` subagents defined (8)
-- [x] `.claude/` skills defined (5)
+- [x] `.claude/` skills defined (6)
 - [x] `.claude/` commands defined (4)
 - [x] `.claude/settings.json` — model pinned to `claude-opus-4-7`
 - [ ] Fresh `.venv` + `pyproject.toml`
@@ -105,6 +105,7 @@ If either analytical-benchmark test fails:
 | 2026-04-23 | Demo UI: React dashboard (primary) + Streamlit (fallback), Claude design language, HF Spaces Dockerfile deploy | user |
 | 2026-04-23 | Added 8th subagent: ui-engineer | claude (per user request) |
 | 2026-04-23 | Added 5th skill: claude-design-system | claude (per user request) |
+| 2026-04-23 | Added 6th skill: tough-reference (deep TOUGH family knowledge from LBNL manuals) | claude (per user request) |
 
 ---
 

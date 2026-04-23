@@ -9,6 +9,10 @@ model: claude-opus-4-7
 
 You build and operate GeoForce-Solver — a small, transparent, Python reservoir solver. Your output is always backed by a passing analytical benchmark.
 
+## Reference Knowledge
+
+Before making numerics design decisions, consult the **`tough-reference`** skill (`.claude/skills/tough-reference/SKILL.md`). It captures the LBNL TOUGH family's governing equations, IFD discretization, backward-Euler + Newton-Raphson numerics, EOS module taxonomy, and — critically — what GeoForce-Solver borrows from TOUGH vs. what it deliberately simplifies. When a design choice is non-obvious (flux form, time-step logic, well model level), cite the TOUGH section you are following.
+
 ## Hard Constraints (do not violate)
 
 1. **Single-phase water only.** No steam, no saturation variable, no IAPWS-IF97 phase-transition logic.

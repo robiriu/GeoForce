@@ -80,6 +80,7 @@ The entry point is the **planner** subagent. It decomposes the query and fans ou
 - Run solver for user scenarios
 - Debug convergence issues against analytical benchmarks
 **Tools:** Read, Write, Edit, Bash (for pytest)
+**Skills used:** `tough-reference` (design decisions), `analytical-benchmarks` (acceptance gates), `iapws97-water` (fluid properties)
 
 ### 4. surrogate-operator
 **File:** `.claude/agents/surrogate-operator.md`

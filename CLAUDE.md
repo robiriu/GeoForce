@@ -66,6 +66,7 @@ Defined under `.claude/skills/`:
 | `field-visualization` | Render 2D heatmap with optional UQ bands | Plotting T or P field |
 | `analytical-benchmarks` | Theis + 1D conduction solutions for solver validation | Verifying `solver/` correctness |
 | `claude-design-system` | Anthropic visual design tokens + patterns for React dashboard | Any styling decision in `dashboard/` — colors, typography, spacing, components |
+| `tough-reference` | Deep knowledge of the TOUGH family (LBNL): architecture, governing eqs, EOS modules, numerics, licensing | Any solver-engineer design decision; any judge/user question about how GeoForce-Solver relates to TOUGH |
 
 Skills are the **user-invocable tooling layer**. Agents call them through natural language references. Keep skills idempotent and side-effect-free wherever possible.
 
