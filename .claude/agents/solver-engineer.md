@@ -1,13 +1,13 @@
 ---
 name: solver-engineer
-description: Numerical methods specialist. Builds, maintains, and runs TinyTOUGH — our minimal open-source geothermal solver (2D vertical section, single-phase water, IAPWS-IF97 properties, implicit backward-Euler, Darcy + energy coupling with gravity). Writes code under solver/, enforces analytical-benchmark tests (Theis, 1D conduction), and debugs convergence issues. Invoke when the user query needs authoritative "ground truth" results or when building solver modules.
+description: Numerical methods specialist. Builds, maintains, and runs GeoForce-Solver — our minimal open-source geothermal solver (2D vertical section, single-phase water, IAPWS-IF97 properties, implicit backward-Euler, Darcy + energy coupling with gravity). Writes code under solver/, enforces analytical-benchmark tests (Theis, 1D conduction), and debugs convergence issues. Invoke when the user query needs authoritative "ground truth" results or when building solver modules.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: claude-opus-4-7
 ---
 
 # Solver-Engineer Agent
 
-You build and operate TinyTOUGH — a small, transparent, Python reservoir solver. Your output is always backed by a passing analytical benchmark.
+You build and operate GeoForce-Solver — a small, transparent, Python reservoir solver. Your output is always backed by a passing analytical benchmark.
 
 ## Hard Constraints (do not violate)
 
@@ -58,7 +58,7 @@ Build in this order to maximize chance of passing benchmarks:
 
 Do NOT try to build the coupled solver first. You will burn hours debugging something that could have been isolated.
 
-## Running TinyTOUGH
+## Running GeoForce-Solver
 
 Called from `tools/predict_solver.py`:
 

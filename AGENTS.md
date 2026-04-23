@@ -30,7 +30,7 @@ The entry point is the **planner** subagent. It decomposes the query and fans ou
    ┌──────────┐         ┌──────────────┐     ┌────────────┐
    │GEOLOGIST │         │  SOLVER-     │     │ SURROGATE- │
    │(validate │         │  ENGINEER    │     │ OPERATOR   │
-   │ inputs)  │         │ (TinyTOUGH)  │     │  (v1.1 CNN)│
+   │ inputs)  │         │ (GeoForce-Solver)  │     │  (v1.1 CNN)│
    └────┬─────┘         └──────┬───────┘     └──────┬─────┘
         │                      │                    │
         └──────────────┬───────┴────────────┬───────┘
@@ -73,7 +73,7 @@ The entry point is the **planner** subagent. It decomposes the query and fans ou
 
 ### 3. solver-engineer
 **File:** `.claude/agents/solver-engineer.md`
-**When:** building, extending, or running TinyTOUGH
+**When:** building, extending, or running GeoForce-Solver
 **Responsibilities:**
 - Write numerical code (`solver/*.py`)
 - Enforce implicit-Euler coupling, Boussinesq approximation
@@ -134,7 +134,7 @@ t=0    planner decomposes
 t=1    ┌──────────────────┬─────────────────┐      ← PARALLEL
        ▼                  ▼                 ▼
        geologist          solver-engineer   surrogate-operator
-       (validate params)  (run TinyTOUGH)   (run v1.1 CNN)
+       (validate params)  (run GeoForce-Solver)   (run v1.1 CNN)
        │                  │                 │
 t=2    └─ params ok       └─ solver done    └─ surrogate done
                           ────────┬─────────
@@ -224,4 +224,4 @@ Judges can inspect any single `.md` file to understand what that agent does, wha
 2. **Explicit parallelism** — if two calls can run in one message, they do.
 3. **Reviewer is always last** — no answer leaves the system un-gated.
 4. **Skills over prompts** — reusable logic (IAPWS, MC, viz) lives in `.claude/skills/`, not baked into agent prompts.
-5. **Honest fallback** — if TinyTOUGH fails analytical benchmarks by Day 1 EOD, we drop the solver and the planner falls back to surrogate-only. The architecture survives either way.
+5. **Honest fallback** — if GeoForce-Solver fails analytical benchmarks by Day 1 EOD, we drop the solver and the planner falls back to surrogate-only. The architecture survives either way.

@@ -1,11 +1,11 @@
 ---
 name: analytical-benchmarks
-description: Closed-form analytical solutions for validating TinyTOUGH. Includes Theis (line-source pressure drawdown) and 1D heat conduction (Fourier). Use these as the truth against which the numerical solver must agree within 5% relative error before any output is trusted.
+description: Closed-form analytical solutions for validating GeoForce-Solver. Includes Theis (line-source pressure drawdown) and 1D heat conduction (Fourier). Use these as the truth against which the numerical solver must agree within 5% relative error before any output is trusted.
 ---
 
 # Analytical Benchmarks Skill
 
-Closed-form solutions used as ground truth for the TinyTOUGH solver.
+Closed-form solutions used as ground truth for the GeoForce-Solver solver.
 
 ## 1. Theis Line-Source Solution (Pressure)
 
@@ -48,7 +48,7 @@ dp = theis_drawdown(
 
 `tests/test_solver_theis.py`:
 
-1. Run TinyTOUGH on a single-producer, homogeneous scenario for 30 days
+1. Run GeoForce-Solver on a single-producer, homogeneous scenario for 30 days
 2. Extract pressure drawdown at radial distances (r=10, 50, 100, 200 m)
 3. Compute analytical Theis at same (r, t)
 4. Assert `max |P_numerical - P_analytical| / |P_analytical| < 0.05`
@@ -90,7 +90,7 @@ T_z = conduction_1d(
 
 `tests/test_solver_conduction.py`:
 
-1. Run TinyTOUGH on a scenario with a fixed hot boundary at top (z=0), cold interior, **no flow** (Darcy disabled or log_k → -∞)
+1. Run GeoForce-Solver on a scenario with a fixed hot boundary at top (z=0), cold interior, **no flow** (Darcy disabled or log_k → -∞)
 2. Extract T at depth z=5, 10, 20, 50 m after t=1 year
 3. Compute analytical erfc solution at same (z, t)
 4. Assert `max |T_numerical - T_analytical| < 5.0 °C` AND `max relative error < 0.05`

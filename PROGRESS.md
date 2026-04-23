@@ -30,7 +30,7 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [ ] `tests/test_surrogate_smoke.py` green
 - [ ] Claude scaffolding discoverable (subagents load)
 
-### Afternoon (4h) — Agent team builds TinyTOUGH
+### Afternoon (4h) — Agent team builds GeoForce-Solver
 - [ ] `solver/properties.py` — IAPWS-IF97 wrappers
 - [ ] `solver/grid.py` — 2D vertical section structured grid
 - [ ] `solver/darcy.py` — pressure solver
@@ -66,7 +66,7 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 
 ### Evening (2h stretch)
 - [ ] Deploy Streamlit (HF Spaces / Fly.io)
-- [ ] `.mcp.json` for MCP-exposed TinyTOUGH
+- [ ] `.mcp.json` for MCP-exposed GeoForce-Solver
 
 ---
 
@@ -86,10 +86,13 @@ If either analytical-benchmark test fails:
 |---|---|---|
 | 2026-04-23 | 1st-place target, Managed Agents as safety net | user |
 | 2026-04-23 | Solver + Surrogate dual-tool | user |
-| 2026-04-23 | Solver name = TinyTOUGH (provisional) | claude |
+| 2026-04-23 | Solver name = GeoForce-Solver (provisional) | claude |
 | 2026-04-23 | Single-phase water (not two-phase) | user approval of pitch |
 | 2026-04-23 | NREL Brady for validation cameo | claude proposal |
 | 2026-04-23 | Day 1 evening GO/NO-GO trigger | claude proposal |
+| 2026-04-23 | Solver renamed TinyTOUGH → GeoForce-Solver | user |
+| 2026-04-23 | Two-phase: single-phase for Day 1; optional stub Day 2 evening only if solver green + submitted | user |
+| 2026-04-23 | Demo framing: Ulubelu-inspired synthetic (liquid-dominated, on-brand) | user approved claude recommendation |
 
 ---
 

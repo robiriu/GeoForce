@@ -5,7 +5,7 @@ description: Compute liquid water properties (density, viscosity, enthalpy) usin
 
 # IAPWS-IF97 Water Properties Skill
 
-Standard industrial-grade formulation for liquid water thermodynamic properties. Used by TinyTOUGH's solver and for any property lookup in the codebase.
+Standard industrial-grade formulation for liquid water thermodynamic properties. Used by GeoForce-Solver's solver and for any property lookup in the codebase.
 
 ## Dependency
 

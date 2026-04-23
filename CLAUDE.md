@@ -14,7 +14,7 @@ This file is loaded automatically at the start of every Claude Code session in t
 **Secondary:** "Best use of Claude Managed Agents" ($5K)
 
 **One-line thesis:**
-> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**TinyTOUGH**) and a deployed physics-informed CNN surrogate — to answer real Indonesian geothermal engineering questions in 48 hours.
+> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate — to answer real Indonesian geothermal engineering questions in 48 hours.
 
 See `HACKATHON-PLAN.md` for full plan, `AGENTS.md` for runtime architecture.
 
@@ -25,7 +25,7 @@ See `HACKATHON-PLAN.md` for full plan, `AGENTS.md` for runtime architecture.
 1. **Always read `HACKATHON-PLAN.md` before proposing scope changes.** The plan is the contract.
 2. **Honor the Day-1-evening GO/NO-GO checkpoint.** If the solver fails analytical benchmarks, drop it immediately and fall back to surrogate-only. See HACKATHON-PLAN.md §7.
 3. **Single-phase water only.** Two-phase physics is OUT OF SCOPE. If a user suggests two-phase, point at plan §3 and refuse politely.
-4. **No live simulators** — no TOUGH3, no TOUGH2, no Waiwera installs. TinyTOUGH is the only solver we ship.
+4. **No live simulators** — no TOUGH3, no TOUGH2, no Waiwera installs. GeoForce-Solver is the only solver we ship.
 5. **Never retrain the CNN.** Use `surrogate/weights/geoforce_cnn_v1.1.pt` as-is.
 
 ---
@@ -38,7 +38,7 @@ This project is built around 7 subagents defined in `.claude/agents/`:
 |---|---|
 | `planner` | Decomposes user queries, dispatches in parallel |
 | `geologist` | Validates physical plausibility of reservoir parameters |
-| `solver-engineer` | Builds and maintains TinyTOUGH numerical code |
+| `solver-engineer` | Builds and maintains GeoForce-Solver numerical code |
 | `surrogate-operator` | Wraps v1.1 CNN inference (normalization + decoding) |
 | `uq-specialist` | Monte Carlo + sensitivity (via `monte-carlo-uq` skill) |
 | `visualizer` | Renders T/P fields + UQ bands (via `field-visualization` skill) |

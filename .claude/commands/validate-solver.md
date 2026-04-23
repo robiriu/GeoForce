@@ -1,10 +1,10 @@
 ---
-description: Run the TinyTOUGH analytical benchmark suite (Theis pressure + 1D conduction temperature). The Day 1 GO/NO-GO checkpoint depends on this.
+description: Run the GeoForce-Solver analytical benchmark suite (Theis pressure + 1D conduction temperature). The Day 1 GO/NO-GO checkpoint depends on this.
 ---
 
 # /validate-solver
 
-Run the full analytical-benchmark validation for TinyTOUGH.
+Run the full analytical-benchmark validation for GeoForce-Solver.
 
 ## Steps
 

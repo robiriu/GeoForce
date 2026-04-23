@@ -17,7 +17,7 @@ Two orchestrated engines:
 
 | Engine | Role | Built when |
 |---|---|---|
-| **TinyTOUGH** (new) | Ground-truth-ish single-phase solver, built by agents during the hackathon | Day 1 afternoon |
+| **GeoForce-Solver** (new) | Ground-truth-ish single-phase solver, built by agents during the hackathon | Day 1 afternoon |
 | **GeoForce v1.1 CNN** (existing) | Fast surrogate for Monte Carlo + sensitivity | Already deployed in ForceX-AI |
 
 A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geothermal engineering questions.
@@ -32,7 +32,7 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
 
 ### IN
 
-1. **TinyTOUGH solver** (NEW, Python)
+1. **GeoForce-Solver solver** (NEW, Python)
    - 2D vertical section (e.g., 50×30 cells), gravity-aware
    - Single-phase water with **IAPWS-IF97** for ρ(T,P), μ(T), h(T,P)
    - Implicit backward-Euler, coupled Darcy + energy conservation
@@ -62,7 +62,7 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
 
 ### OUT (explicitly cut)
 
-- Two-phase physics (steam + liquid) — fatal in 2 days; v2 territory
+- **Two-phase physics (steam + liquid) — fatal in 2 days, confirmed 2026-04-23.** A minimal Day-2-evening STUB (saturation variable plumbing, no flash logic) is permitted only if Day 1 solver is green and submission is already filed. Real two-phase is post-hackathon.
 - 3D grids — vertical-section 2D only
 - TOUGH3 / TOUGH2 / Waiwera — any live external simulator install
 - Retraining the CNN
@@ -93,7 +93,7 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
    ┌─────────┐  ┌─────────┐ ┌──────────┐  ┌────────────┐  ┌──────────┐
    │GEOLOGIST│  │SOLVER-  │ │SURROGATE-│  │UQ-         │  │VISUALIZER│
    │         │  │ENGINEER │ │OPERATOR  │  │SPECIALIST  │  │          │
-   │validate │  │TinyTOUGH│ │v1.1 CNN  │  │Monte Carlo │  │matplotlib│
+   │validate │  │GeoForce-Solver│ │v1.1 CNN  │  │Monte Carlo │  │matplotlib│
    │params   │  │builds & │ │inference │  │+ sensitivity│ │heatmaps  │
    │         │  │runs     │ │wrapper   │  │            │  │+ uq bands│
    └─────────┘  └─────────┘ └──────────┘  └────────────┘  └──────────┘
@@ -143,7 +143,7 @@ GeoForce-CCHackathon/
 │   │   └── demo.md
 │   └── hooks/
 │       └── post_write_pytest.sh    # auto-run tests after edits to solver/
-├── solver/                         # TinyTOUGH (built during hackathon)
+├── solver/                         # GeoForce-Solver (built during hackathon)
 │   ├── __init__.py
 │   ├── grid.py                     # 2D vertical section mesh
 │   ├── properties.py               # IAPWS-IF97 wrappers
@@ -191,7 +191,7 @@ GeoForce-CCHackathon/
 - [ ] Confirm `.claude/` scaffolding loads correctly (subagents discovered)
 - [ ] `pyproject.toml` installs clean in a fresh venv
 
-**Afternoon (4h) — TinyTOUGH built by agent team**
+**Afternoon (4h) — GeoForce-Solver built by agent team**
 - [ ] Orchestrate solver-engineer + geologist + reviewer agents
 - [ ] `solver/properties.py` — IAPWS-IF97 wrappers (use `iapws` PyPI package)
 - [ ] `solver/grid.py` — 2D vertical section, structured grid
@@ -224,8 +224,9 @@ GeoForce-CCHackathon/
 
 **Evening (2h) — stretch goals (only if on schedule)**
 - [ ] Deploy Streamlit to HuggingFace Spaces or Fly.io
-- [ ] Add `.mcp.json` exposing TinyTOUGH as an MCP server
+- [ ] Add `.mcp.json` exposing GeoForce-Solver as an MCP server
 - [ ] Submit via Cerebral Valley portal
+- [ ] **Two-phase stub** (optional): add a saturation-variable placeholder (`S_g` field, clamped to 0) and IAPWS-IF97 saturation-curve lookup in `solver/properties.py`. No flash logic. Signals to judges that the architecture extends to two-phase without claiming it works. Condition: only if Day 1 solver is green AND demo video is recorded AND submission is filed.
 
 ### Buffer / cut order if behind
 1. Drop HuggingFace deploy
@@ -282,13 +283,13 @@ If either `test_solver_theis.py` or `test_solver_conduction.py` is **not green**
 ## 9. Open Decisions (answered)
 
 1. **Scope:** Solver + Surrogate dual-tool — **APPROVED 2026-04-23**
-2. **Solver name:** **TinyTOUGH** (provisional; 1 find/replace to rename)
+2. **Solver name:** **GeoForce-Solver** (provisional; 1 find/replace to rename)
 3. **Phase:** single-phase water; two-phase cut as out-of-scope
 4. **Agent runtime:** `claude-agent-sdk` + `ANTHROPIC_API_KEY`
-5. **Demo framing:** To confirm — Kamojang-style (on-brand, Indonesian fields) vs synthetic
+5. **Demo framing:** **Ulubelu-inspired synthetic** — use the Ulubelu field name for on-brand Indonesian narrative, but parameters chosen so the single-phase, liquid-dominated assumption is honest (Ulubelu is 200–240°C, liquid-dominated). Avoids over-claiming vs real Pertamina data.
 6. **Python env:** fresh `.venv` in repo root
 7. **Primary prize:** 1st place ($50K); Managed Agents ($5K) as safety net
 
 ---
 
-**Status:** scaffolding in progress. TinyTOUGH and agent work begin Day 1 morning.
+**Status:** scaffolding in progress. GeoForce-Solver and agent work begin Day 1 morning.
