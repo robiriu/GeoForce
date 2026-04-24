@@ -50,6 +50,22 @@ export async function predictFields(
   return res.json();
 }
 
+/** Run /predict with an inline scenario dict (what the agent passes to its
+ * predict_solver / predict_surrogate tools). Returns fields for the dashboard
+ * canvas; runs locally on the backend, no extra API tokens consumed. */
+export async function predictFieldsInline(
+  scenario: Record<string, unknown>,
+  engine: "solver" | "surrogate",
+): Promise<PredictResponse> {
+  const res = await fetch(`${API_BASE}/predict`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario, engine }),
+  });
+  if (!res.ok) throw new Error(`predict: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchScenarios(): Promise<Scenario[]> {
   const res = await fetch(`${API_BASE}/scenarios`);
   if (!res.ok) throw new Error(`scenarios: ${res.status}`);

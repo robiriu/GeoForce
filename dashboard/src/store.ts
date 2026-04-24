@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { predictFields } from "./api/client";
+import { predictFields, predictFieldsInline } from "./api/client";
 import type { AgentEvent, PredictResponse, Scenario } from "./api/client";
 
 export type TraceItem =
@@ -19,6 +19,12 @@ type State = {
   fields: PredictResponse | null;
   fieldsLoading: boolean;
   fieldsError: string | null;
+
+  /** Fields derived from the agent's own tool calls during a /query run.
+   * When present, the FieldPanel renders these instead of the scenario
+   * preview — so "Ask agent" actually shows what the agent computed. */
+  agentFields: PredictResponse | null;
+  agentFieldsBusy: boolean;
 
   setScenarios: (s: Scenario[]) => void;
   selectScenario: (id: string) => void;
@@ -44,6 +50,9 @@ export const useStore = create<State>((set, get) => ({
   fieldsLoading: false,
   fieldsError: null,
 
+  agentFields: null,
+  agentFieldsBusy: false,
+
   setScenarios: (s) => {
     const first = s[0]?.id ?? null;
     set({
@@ -65,6 +74,7 @@ export const useStore = create<State>((set, get) => ({
       finalText: "",
       stopReason: null,
       error: null,
+      agentFields: null,
     }),
 
   pushEvent: (e) => {
@@ -81,6 +91,31 @@ export const useStore = create<State>((set, get) => ({
       }
     } else if (e.type === "tool") {
       set({ trace: [...s.trace, { kind: "tool", name: e.name, input: e.input }] });
+      // If the agent called a predict_* tool, re-run the same scenario
+      // through /predict so the canvas can show the field it reasoned about.
+      const engine =
+        e.name === "mcp__geoforce__predict_solver"
+          ? "solver"
+          : e.name === "mcp__geoforce__predict_surrogate"
+            ? "surrogate"
+            : null;
+      const scenario = e.input?.scenario as Record<string, unknown> | undefined;
+      if (engine && scenario) {
+        set({ agentFieldsBusy: true });
+        predictFieldsInline(scenario, engine)
+          .then((res) => {
+            const prev = get().agentFields;
+            // Merge so a sequence of solver→surrogate calls shows both.
+            const merged: PredictResponse = {
+              engine: "both",
+              solver: engine === "solver" ? res.solver : prev?.solver,
+              surrogate:
+                engine === "surrogate" ? res.surrogate : prev?.surrogate,
+            };
+            set({ agentFields: merged, agentFieldsBusy: false });
+          })
+          .catch(() => set({ agentFieldsBusy: false }));
+      }
     } else if (e.type === "result") {
       set({ finalText: e.final_text, stopReason: e.stop_reason });
     } else if (e.type === "error") {
