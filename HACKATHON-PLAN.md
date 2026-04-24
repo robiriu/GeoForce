@@ -325,3 +325,43 @@ If either `test_solver_theis.py` or `test_solver_conduction.py` is **not green**
 ---
 
 **Status:** scaffolding in progress. GeoForce-Solver and agent work begin Day 1 morning.
+
+---
+
+## 10. Post-Day-2 addendum — engineer-grade chat (2026-04-24)
+
+Day 2 shipped a single-shot `/query` that fires a fresh
+`ClaudeSDKClient` per question. During Day 3 the user asked for a
+follow-up pattern "so engineers can actually use this", while keeping
+the three demo scenario cards as the first impression.
+
+**Scope change (in):**
+
+- `/sessions` POST opens a long-lived `ClaudeSDKClient`, kept in an
+  in-process dict; `/sessions/{id}/query` streams further turns. A
+  per-session `asyncio.Lock` prevents two concurrent queries on the
+  same session from interleaving on the transport. Reaper task
+  evicts sessions idle > 10 min; LRU eviction past 32 sessions.
+- Dashboard switches to a chat bubble layout (`ChatThread.tsx`).
+  `AgentTrace.tsx` and `AnswerPanel.tsx` are deleted; their behaviour
+  is folded into per-message bubbles. A persistent composer below
+  the thread submits against the current session. The scenario
+  cards + side-by-side canvas remain as the top-row hero.
+- Canvas continues to update live on each `predict_solver` /
+  `predict_surrogate` tool call, across every turn of the chat, via
+  the inline `/predict` pathway added on Day 2.
+
+**Scope change (out):**
+
+- No persisted history — sessions live in memory only, cleared on
+  Space restart. Judges will not redeploy mid-demo, and the 10-min
+  TTL is long enough for any single evaluation session.
+- No per-session auth — the HF Space is public; the `/sessions`
+  endpoint is open. Acceptable because the server-side rate limit
+  is the 32-session cap and the agent itself enforces
+  `max_turns=12` per turn.
+
+**Cost discipline:** each follow-up turn is one Opus 4.7 call with
+context growing linearly (compressed 8×8 tool previews, not full
+arrays). ~$0.30–0.80 per 3-turn follow-up, well inside the remaining
+budget.

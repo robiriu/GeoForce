@@ -636,5 +636,81 @@ Rebuild succeeded (~3 min). Live verification:
 time. Runtime code can fetch LFS artefacts via `resolve/` URLs, but
 don't assume `COPY` will DTRT for binary blobs.
 
-*Last updated: 2026-04-24 — Day 3 morning, live Space fully functional on both engines.*
+### 16.7 Day-3 late morning: agent tool calls drive the canvas
+
+Engineer feedback after the first live session: "the plot only shows
+up from the scenario card, not from what the agent did." Fair — the
+two UI paths (scenario → `/predict` → FieldPanel, and query →
+`/query` → AgentTrace) had been intentionally decoupled so the
+agent's tool results stayed small for the LLM. But the dashboard was
+losing the visual feedback loop.
+
+The minimum change: when the SSE stream emits an `event: tool` for
+`mcp__geoforce__predict_solver` or `_surrogate`, the client re-runs
+`/predict` with the **same inline scenario dict** and merges the
+result into a new `agentFields` bucket that the `FieldPanel` prefers
+over the scenario preview. No backend change required — `/predict`
+already accepts inline scenarios. Solver/surrogate are local Python,
+so the double-run burns zero Anthropic tokens (and only ~3s of
+server CPU for the solver case, ~4ms for the surrogate).
+
+A small "from agent · live" chip (orange) distinguishes the agent's
+output from the scenario preview. A solver-only or surrogate-only
+partial render is supported so the canvas can update mid-stream (you
+see the solver card appear, then the surrogate slides in next to it).
+
+### 16.8 Day-3 afternoon: chat sessions + engineer-grade UX
+
+Two follow-up asks from the user:
+
+1. *"Follow-up questions would make this platform real — engineers
+   don't ask one-shot questions."*
+2. *"But the dashboard must feel like Claude chat, with the canvas
+   updating dynamically across turns. Keep the three scenario cards
+   + their canvas as the first impression."*
+
+**Backend.** Added in-process session management to `agent/api.py`:
+
+- `POST /sessions` → opens a `ClaudeSDKClient` inside an
+  `AsyncExitStack`, stashes it in a module dict keyed by a 16-char
+  uuid, returns the id.
+- `POST /sessions/{id}/query` → streams one turn using the same
+  long-lived client. Context (prior turns + compressed tool
+  previews) is preserved by the SDK.
+- Per-session `asyncio.Lock` serializes queries on the same session —
+  the SDK transport isn't safe for concurrent `.query()` calls.
+- Reaper task sweeps every 60 s and closes sessions idle > 10 min.
+  LRU eviction past 32 sessions.
+- `DELETE /sessions/{id}` for explicit cleanup from the "new chat"
+  button.
+- The old single-shot `/query` is kept for the card-level demo and
+  any non-chat consumer.
+
+**Frontend.** Rewrote the store around a `messages: ChatMessage[]`
+list. `sendMessage()` appends a user bubble and a streaming agent
+bubble, then pipes SSE events directly into the agent bubble's
+`trace` / `finalText` fields. `AgentTrace.tsx` and
+`AnswerPanel.tsx` are deleted; their behaviour is folded into a new
+`ChatThread.tsx` with Claude-chat styling (serif user bubble in the
+Clay soft tint, bordered agent card with tool chips + final serif
+answer). The composer at the bottom of the page is always visible —
+first submission kicks off a session, subsequent ones reuse it.
+Enter sends, Shift+Enter newlines. A small "session xxxxxxxx" chip
+shows in the thread header; a "new chat" button closes the session
+and clears the thread.
+
+The hero (three scenario cards + side-by-side canvas) stays as the
+top row of the grid — first impression preserved, canvas keeps
+updating live on every tool call across every turn.
+
+**Budget note.** Dev iteration on this change runs on the user's Max
+subscription (they ran `/login` to switch CLI auth); the HF Space
+secret still holds the API key for judge-facing traffic. Per-turn
+Anthropic cost is linear in turn count, not quadratic, because the
+tool results that go back to Opus are 8×8 previews — not the full
+(32,32) arrays the dashboard renders. Ballpark: a 3-turn follow-up
+conversation costs ~$0.30-0.80 on Opus 4.7.
+
+*Last updated: 2026-04-24 — Day 3 afternoon, multi-turn chat live,
+hero preserved, canvas dynamic across turns.*
 

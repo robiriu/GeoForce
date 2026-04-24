@@ -83,6 +83,21 @@ Live task tracking. Updated at the end of every work block. Source of truth = th
 - [ ] `.mcp.json` exposing GeoForce-Solver via MCP
 - [ ] Two-phase stub (saturation variable plumbing, no flash)
 
+## Day 3 — Post-deploy polish
+
+### Morning 2026-04-24
+- [x] Fix `/predict?engine=surrogate` 500 on HF (LFS pointer stub
+      replaced at build time via resolve URL curl)
+- [x] Dashboard `/api` → same-origin routing fix (`VITE_API_BASE=""`)
+- [x] Align runtime model with repo config: `claude-opus-4-7` in
+      `agent/runtime.py`
+- [x] Agent tool calls drive the canvas in real time during a turn
+      (`predictFieldsInline` on `mcp__geoforce__predict_solver/_surrogate`)
+- [x] **Multi-turn chat**: `/sessions` + `/sessions/{id}/query` with
+      long-lived `ClaudeSDKClient`, TTL 10 min, 32-session cap, reaper.
+      Dashboard switches to chat bubble layout with persistent composer
+      while the scenario cards + canvas remain as the hero.
+
 ---
 
 ## Fallback Plan (if Day 1 Evening checkpoint fails)
