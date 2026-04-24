@@ -18,9 +18,14 @@ Run with:
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
+from contextlib import AsyncExitStack
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, AsyncGenerator, Literal
+from uuid import uuid4
 
 import numpy as np
 import yaml
@@ -186,6 +191,153 @@ async def query(req: QueryRequest) -> EventSourceResponse:
             prompt = f"{match['question']}\n\nUser override: {req.query}" if req.query else match["question"]
 
     return EventSourceResponse(_stream_agent(prompt))
+
+
+# ---- Multi-turn sessions ----------------------------------------------------
+# A "session" holds one long-lived ClaudeSDKClient so the dashboard can have a
+# real chat with the agent — the model sees prior turns + tool results. Each
+# session has a per-session asyncio.Lock so two concurrent /query calls don't
+# interleave on the same transport. Sessions idle > TTL are reaped.
+
+SESSION_TTL_SEC = 600  # 10 min idle
+SESSION_CAP = 32  # evict oldest when full
+
+
+@dataclass
+class _Session:
+    client: ClaudeSDKClient
+    stack: AsyncExitStack
+    last_used: float
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+SESSIONS: dict[str, _Session] = {}
+
+
+async def _open_session() -> str:
+    _load_env()
+    stack = AsyncExitStack()
+    try:
+        client = await stack.enter_async_context(ClaudeSDKClient(options=build_options()))
+    except Exception:
+        await stack.aclose()
+        raise
+    sid = uuid4().hex[:16]
+    SESSIONS[sid] = _Session(client=client, stack=stack, last_used=time.time())
+    return sid
+
+
+async def _close_session(sid: str) -> None:
+    sess = SESSIONS.pop(sid, None)
+    if sess is None:
+        return
+    try:
+        await sess.stack.aclose()
+    except Exception:  # noqa: BLE001 — best-effort teardown
+        pass
+
+
+async def _reap_sessions() -> None:
+    while True:
+        try:
+            now = time.time()
+            stale = [sid for sid, s in list(SESSIONS.items()) if now - s.last_used > SESSION_TTL_SEC]
+            for sid in stale:
+                await _close_session(sid)
+        except Exception:  # noqa: BLE001
+            pass
+        await asyncio.sleep(60)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    app.state._reaper = asyncio.create_task(_reap_sessions())
+
+
+@app.post("/sessions")
+async def create_session() -> dict[str, str]:
+    """Open a multi-turn session. Returns a session_id the client uses
+    for subsequent /sessions/{id}/query calls."""
+    if len(SESSIONS) >= SESSION_CAP:
+        oldest = min(SESSIONS, key=lambda k: SESSIONS[k].last_used)
+        await _close_session(oldest)
+    try:
+        sid = await _open_session()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"failed to open session: {exc}") from exc
+    return {"session_id": sid}
+
+
+@app.delete("/sessions/{sid}")
+async def drop_session(sid: str) -> dict[str, bool]:
+    await _close_session(sid)
+    return {"ok": True}
+
+
+async def _stream_session(
+    sess: _Session, prompt: str
+) -> AsyncGenerator[dict[str, str], None]:
+    # Serialize queries on the same session; SDK transport isn't safe for
+    # concurrent .query() calls.
+    async with sess.lock:
+        sess.last_used = time.time()
+        final_parts: list[str] = []
+        final_stop: str | None = None
+        try:
+            await sess.client.query(prompt)
+            async for message in sess.client.receive_response():
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            final_parts.append(block.text)
+                            yield {
+                                "event": "text",
+                                "data": json.dumps({"text": block.text}),
+                            }
+                        elif isinstance(block, ToolUseBlock):
+                            yield {
+                                "event": "tool",
+                                "data": json.dumps(
+                                    {"name": block.name, "input": block.input}
+                                ),
+                            }
+                elif isinstance(message, ResultMessage):
+                    final_stop = getattr(message, "stop_reason", None)
+                    if not final_parts and message.result:
+                        final_parts.append(message.result)
+                    break
+        except Exception as exc:  # noqa: BLE001
+            yield {"event": "error", "data": json.dumps({"message": str(exc)})}
+            return
+        sess.last_used = time.time()
+        yield {
+            "event": "result",
+            "data": json.dumps(
+                {"final_text": "".join(final_parts), "stop_reason": final_stop}
+            ),
+        }
+
+
+@app.post("/sessions/{sid}/query")
+async def session_query(sid: str, req: QueryRequest) -> EventSourceResponse:
+    """Stream a turn in an existing multi-turn session as SSE."""
+    sess = SESSIONS.get(sid)
+    if sess is None:
+        raise HTTPException(404, f"session {sid!r} not found or expired")
+    prompt = req.query
+    if req.scenario_id:
+        data = scenarios()
+        match = next(
+            (s for s in data.get("scenarios", []) if s.get("id") == req.scenario_id),
+            None,
+        )
+        if match and match.get("question"):
+            prompt = (
+                f"{match['question']}\n\nUser override: {req.query}"
+                if req.query
+                else match["question"]
+            )
+    return EventSourceResponse(_stream_session(sess, prompt))
 
 
 # ---- Serve built React dashboard (if present) -------------------------------

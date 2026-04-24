@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "./components/Header";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { QueryInput } from "./components/QueryInput";
-import { AgentTrace } from "./components/AgentTrace";
-import { AnswerPanel } from "./components/AnswerPanel";
+import { ChatThread } from "./components/ChatThread";
 import { FieldPanel } from "./components/FieldPanel";
 import { checkHealth, fetchScenarios } from "./api/client";
 import { useStore } from "./store";
@@ -22,20 +21,26 @@ export default function App() {
   return (
     <div className="app-shell">
       <Header healthy={healthy} />
+
+      {/* Hero: scenario cards on the left, side-by-side canvas on the right.
+          First impression; preserved across chat turns. */}
       <div className="grid-two">
-        <div className="stack" style={{ gap: "var(--space-6)" }}>
-          <ScenarioPicker />
-          <QueryInput />
-        </div>
-        <div className="stack" style={{ gap: "var(--space-6)" }}>
-          <FieldPanel />
-          <AnswerPanel />
-          <AgentTrace />
-        </div>
+        <ScenarioPicker />
+        <FieldPanel />
       </div>
-      <footer className="subtle" style={{ fontSize: "var(--text-xs)", textAlign: "center" }}>
-        Built for the Opus 4.7 hackathon. GeoForce-Solver (implicit Darcy + energy) +
-        v1.1 ReservoirCNN surrogate.
+
+      {/* Conversation (appears after the first turn) + persistent composer. */}
+      <div className="stack" style={{ gap: "var(--space-6)" }}>
+        <ChatThread />
+        <QueryInput />
+      </div>
+
+      <footer
+        className="subtle"
+        style={{ fontSize: "var(--text-xs)", textAlign: "center" }}
+      >
+        Built for the Opus 4.7 hackathon. GeoForce-Solver (implicit Darcy +
+        energy) + v1.1 ReservoirCNN surrogate.
       </footer>
     </div>
   );
