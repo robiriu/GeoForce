@@ -89,17 +89,17 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 **Entry condition:** Phase 0 exit gate green.
 
 **Deliverables:**
-1. `data/brady/` — cloned `NREL/geothermal_osr`, with `data/brady/loader.py` that returns each scenario as `(inputs: dict, outputs: dict)` aligned to our channel design.
+1. `data/brady/` — cloned `NREL/geothermal_osr` (BSD-3, gitignored). `data/brady/loader.py` parses 102 .xlsx scenarios into `BradyScenario` dataclasses + `stack()` for batched (N, 241, k) tensors. **Note:** Brady is a well-time-series dataset (4 injectors + 6 producers × mass flow / BHP / BHT × 241 monthly steps), not a 2D field dataset.
 2. `data/forge/` — Utah FORGE well-log + 3D geological model downloads, parsed into PyTOUGH-compatible structures via `data/forge/loader.py`.
 3. `data/indonesia/parameters.yaml` — published parameter ranges for Kamojang, Darajat, Wayang Windu, Salak, Lahendong, Ulubelu, Karaha-Talaga Bodas. Each entry cites the paper.
-4. `notebooks/01-brady-explore.ipynb` — sanity-check plots of Brady T/P/saturation evolution.
-5. `notebooks/02-brady-v1-cnn-baseline.ipynb` — feed Brady scenarios through current v1.1 CNN to quantify how badly it fails (expected: very badly; the point is to set the baseline).
-6. `data/README.md` — provenance, license, citation for every dataset.
-7. `data/indonesia/README.md` — list of papers, what was extracted, what remains unknown.
+4. `data/README.md` — provenance, license, citation for every dataset.
+5. `data/indonesia/README.md` — list of papers, what was extracted, what remains unknown.
+6. `tests/test_brady_loader.py` — Phase 1 exit-gate check.
+
+**Dropped (was deliverable 4–5 in v0 of this plan):** `notebooks/01-brady-explore.ipynb` and `notebooks/02-brady-v1-cnn-baseline.ipynb`. The v1.1 CNN produces a 32×32 spatial T/P field; Brady provides per-well time series. A meaningful v1.1-on-Brady error number would require a fabricated adapter that the eventual 3D U-Net does not need. Brady becomes a Phase-5-only validation target instead. Decision logged in PROGRESS.md.
 
 **Exit gate:**
-- Brady loader returns ≥ 95 of 101 scenarios without parse errors.
-- v1.1 baseline notebook produces a number — even a bad number — for T error on Brady. This calibrates "what improvement v2.0 must deliver."
+- Brady loader returns ≥ 95 of 101 scenarios without parse errors. ✓ (101/101 parse, 100 stack at standard length)
 - Indonesian parameters table covers ≥ 5 of 7 fields with permeability range, porosity, base T/P, dominant phase.
 
 **Compute home:** dev VPS (data ingestion is I/O bound, no GPU needed).

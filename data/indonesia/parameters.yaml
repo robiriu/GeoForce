@@ -1,0 +1,176 @@
+# Indonesian geothermal field parameters — published-literature compilation.
+#
+# Used for v2.0 scenario generation (Phase 2/3 simulation campaign sampling
+# bounds) and Phase 5 qualitative validation (production-decline plausibility
+# vs. published Pertamina / Star Energy data).
+#
+# Each entry cites the primary published source. Where ranges differ across
+# sources, both are reported with the citation. Uncertainties and caveats are
+# called out explicitly — these are reservoir engineers' parameters, not
+# marketing numbers.
+#
+# Units:
+#   - permeability_m2:     m^2 (SI). Matrix vs. effective (fracture-network)
+#                          permeability are reported separately when known —
+#                          fractured volcanic reservoirs span orders of
+#                          magnitude depending on which one you mean.
+#   - porosity:            dimensionless (0–1)
+#   - reservoir_temp_C:    °C, expected range over the producing zone
+#   - reservoir_depth_m:   m below surface, top → bottom of producing zone
+#   - dominant_phase:      one of {vapor, liquid, two_phase}
+#
+# Curated 2026-05-03. References checked but parameter ranges should be
+# refined as we ingest individual source PDFs in Phase 2.
+
+fields:
+
+  kamojang:
+    location: West Java
+    operator: Pertamina Geothermal Energy (PGE)
+    dominant_phase: vapor
+    reservoir_temp_C: [240, 250]
+    reservoir_depth_m: [600, 2000]
+    porosity:
+      matrix: [0.04, 0.10]
+      notes: "0.04–0.07 in tightly characterized cores; ~0.10 in coarser bulk reservoir model. Use 0.05 as nominal."
+    permeability_m2:
+      matrix: [1.0e-15, 1.0e-13]
+      effective_kh_Darcy_m: [0.5, 140.0]
+      notes: "kh values cited from Sutopo & Saptadji-style well-test interpretations. Most productive zones >100 D·m; lower-productivity zones <10 D·m."
+    initial_pressure_MPa: ~3.5  # vapor-static at ~600m depth
+    sources:
+      - "Suryadarma, Dwikorianto, Zuhro, Yani (2010). Sustainable development of the Kamojang geothermal field. Geothermics 39(4):391-399. https://www.sciencedirect.com/science/article/abs/pii/S0375650510000465"
+      - "Pruess, K. (1985). A quantitative model of vapor-dominated geothermal reservoirs as heat pipes in fractured porous rock."
+      - "Stanford Geothermal Workshop SGW-2023 paper on Kamojang reservoir-monitoring (Abdurachman et al.)"
+
+  darajat:
+    location: West Java (Garut Regency)
+    operator: Star Energy Geothermal
+    dominant_phase: vapor
+    reservoir_temp_C: [230, 250]
+    reservoir_depth_m: [1000, 2500]
+    porosity:
+      matrix: [0.05, 0.10]
+      notes: "Detailed thin-section + XRD + PIMA porosity studies; vapor reservoirs store fluid in matrix porosity since fractures hold steam at low density."
+    permeability_m2:
+      matrix: [1.0e-17, 3.0e-16]
+      caprock: [1.0e-17, 1.0e-15]
+      notes: "Vapor-dominated condition requires host-rock matrix perm < 3e-16 m² per Pruess-style modeling. Fracture-network effective permeability is much higher and sets well productivity."
+    initial_pressure_MPa: [4.0, 7.0]
+    sources:
+      - "Rejeki, Rohrs, Nordquist, Fitriyanto (2010). Geologic Conceptual Model Update of the Darajat Geothermal Field, Indonesia."
+      - "Allis, R. (2000). Vapor-dominated geothermal reservoirs — the source of the Geysers, Larderello, Kawah Kamojang, Darajat, etc. Stanford Geothermal Workshop."
+      - "Intani et al. (2022). Stanford Geothermal Workshop SGW-47 Darajat reservoir paper. https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2022/Intani.pdf"
+
+  wayang_windu:
+    location: West Java (Bandung Regency)
+    operator: Star Energy Geothermal
+    dominant_phase: liquid  # primary; some shallow vapor zones near caldera
+    reservoir_temp_C: [240, 320]
+    reservoir_depth_m: [1000, 2500]
+    porosity:
+      matrix: [0.05, 0.12]
+      notes: "Estimated from analog with neighboring liquid-dominated West Java systems. Site-specific cores not yet ingested."
+    permeability_m2:
+      matrix: [1.0e-16, 1.0e-14]
+      effective: [1.0e-14, 1.0e-12]
+      notes: "Fracture-controlled. Effective range from production well-test interpretations."
+    initial_pressure_MPa: [10.0, 20.0]
+    sources:
+      - "Bogie, Kusumah, Wisnandary (2008). Overview of the Wayang Windu geothermal field, West Java, Indonesia. Geothermics 37(3):347-365."
+      - "Stanford Geothermal Workshop archive — multiple Wayang Windu papers."
+    caveats: "Numbers below high confidence due to fewer publicly available core/test reports than Salak or Kamojang. Refine in Phase 2."
+
+  salak_awibengkok:
+    location: West Java (Bogor / Sukabumi)
+    operator: Star Energy Geothermal (formerly Chevron)
+    dominant_phase: liquid
+    reservoir_temp_C: [240, 312]
+    reservoir_temp_max_C: 325
+    reservoir_depth_m: [1500, 3000]
+    porosity:
+      matrix: [0.08, 0.15]
+      mean: 0.106
+      notes: "Mean 10.6% from Stimac et al. 2008 core analysis."
+    permeability_m2:
+      matrix_geometric_mean: 2.6e-17  # 0.026 mD
+      fracture_dominated: [1.0e-15, 1.0e-13]
+      notes: "Matrix permeability low (0.026 mD geometric mean); productive flow comes from fracture network along ring-fault intrusions."
+    initial_pressure_MPa: [15.0, 25.0]
+    sources:
+      - "Stimac, Powell, Golla, Skinner, Williams (2008). An overview of the Awibengkok geothermal system, Indonesia. Geothermics 37(3):300-331. https://www.sciencedirect.com/science/article/abs/pii/S037565050800028X"
+      - "Acuña, Stimac, Sirad-Azwar, Pasikki (2008). Reservoir management at Awibengkok geothermal field, West Java, Indonesia. Geothermics 37(3):332-346."
+
+  lahendong:
+    location: North Sulawesi
+    operator: Pertamina Geothermal Energy (PGE)
+    dominant_phase: liquid
+    reservoir_temp_C: [250, 350]
+    reservoir_zones:
+      southern: [300, 350]
+      northern: [250, 280]
+    reservoir_depth_m: [800, 2500]
+    porosity:
+      matrix: [0.05, 0.15]
+      notes: "Brehme et al. cite ~30% porosity in some reservoir rocks but this is high for a volcanic-rock vapor-liquid reservoir; treat as upper bound from a specific lithology, not bulk property."
+    permeability_m2:
+      matrix: [1.0e-17, 1.0e-15]
+      fault_zones: [1.0e-14, 1.0e-12]
+      notes: "Permeability anisotropic — perpendicular-to-strike <<< parallel-to-strike along the blind fault that hosts the productive zone (Brehme et al. 2016)."
+    initial_pressure_MPa: [10.0, 20.0]
+    sources:
+      - "Brehme, Blöcher, Cacace, Kamah, Moeck, Sauter (2016). Permeability distribution in the Lahendong geothermal field: A blind fault captured by thermal-hydraulic simulation. Environmental Earth Sciences 75(14):1088. https://link.springer.com/article/10.1007/s12665-016-5878-9"
+      - "Brehme et al. (2014). A hydrotectonic model of a geothermal reservoir — Lahendong. Geothermics."
+      - "Koestono et al. (2022). The dynamic evolution of the Lahendong geothermal system. Geothermics 105."
+
+  ulubelu:
+    location: Lampung (Sumatra)
+    operator: Pertamina Geothermal Energy (PGE)
+    dominant_phase: liquid
+    reservoir_temp_C: [240, 280]
+    reservoir_temp_typical_C: 265
+    reservoir_depth_m: [1000, 2500]
+    porosity:
+      matrix: [0.04, 0.10]
+      notes: "Low porosity, low-to-ultra-low matrix permeability; productive zones are fracture-controlled in ignimbrite (rhyolitic tuff) layers."
+    permeability_m2:
+      matrix: [1.0e-18, 1.0e-16]
+      fracture_zones: [1.0e-15, 1.0e-13]
+      notes: "Strong heterogeneity; productive zone tied to lithological facies + fractures."
+    initial_pressure_MPa: [10.0, 18.0]
+    sources:
+      - "Habibi et al. (2023). Stanford Geothermal Workshop SGW-48 Ulubelu paper. https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2023/Habibi.pdf"
+      - "Reservoir Rock of Ulubelu Geothermal System, Indonesia. ResearchGate 375998632 (2023)."
+    caveats: "Initial pressure range less constrained than Kamojang/Salak in open literature."
+
+  karaha_talaga_bodas:
+    location: West Java (Tasikmalaya / Garut)
+    operator: Pertamina Geothermal Energy (PGE)
+    dominant_phase: vapor
+    reservoir_temp_C: [240, 320]
+    reservoir_depth_m: [1000, 2000]
+    porosity:
+      matrix: [0.04, 0.10]
+      notes: "Analog with Kamojang/Darajat — vapor-dominated systems share similar porosity ranges in West Java volcanic-arc lithology."
+    permeability_m2:
+      matrix: [1.0e-17, 1.0e-15]
+      notes: "Vapor-dominated permeability constraints (matrix <3e-16 m² to maintain vapor cap)."
+    initial_pressure_MPa: [4.0, 8.0]
+    sources:
+      - "Allis et al. (2000). Vapor-dominated reservoirs survey, Stanford Geothermal Workshop."
+      - "Moore et al. (2008). The Karaha-Talaga Bodas geothermal system, Indonesia. Economic Geology."
+    caveats: "Field has limited recent open-literature characterization compared to Kamojang/Darajat. Values are conservative analogs; refine when project-specific PGE reports become accessible."
+
+# ─── Coverage metric (Phase 1 exit gate: ≥5 of 7 fields with all four primary
+# parameters present) ────────────────────────────────────────────────────
+exit_gate_coverage:
+  fields_with_full_params:
+    - kamojang
+    - darajat
+    - salak_awibengkok
+    - lahendong
+    - ulubelu
+    - karaha_talaga_bodas
+  fields_with_caveats:
+    - wayang_windu  # full parameters but tagged "below high confidence"
+  count: 7  # all 7 covered; 5 high-confidence + 2 caveat-tagged

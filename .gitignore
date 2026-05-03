@@ -59,3 +59,7 @@ surrogate/weights/*.pt.old
 
 # Docker build artifacts
 .dockerignore.bak
+
+# External datasets — pulled from upstream, do not vendor
+data/brady/
+data/forge/

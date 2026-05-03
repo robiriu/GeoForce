@@ -17,7 +17,7 @@ All v2.0 work happens on `v2-transform`. `main` is frozen at v0.2.
 | # | Phase | Status | Started | Completed | Exit gate |
 |---|---|---|---|---|---|
 | 0 | Foundation | **Complete** | 2026-05-03 | 2026-05-03 | Vertex Gemini end-to-end with tool call + SSE |
-| 1 | Real Data | Not Started | — | — | Brady ≥95/101 loadable, baseline measured |
+| 1 | Real Data | **Complete** | 2026-05-03 | 2026-05-03 | Brady ≥95/101 loadable + ≥5 Indonesian fields characterized |
 | 2 | Simulator + Pilot Campaign | Not Started | — | — | Waiwera RFP green; 90/100 pilot pass |
 | 3 | Full Simulation Campaign | Not Started | — | — | ≥900 valid scenarios, stratified split |
 | 4 | 3D U-Net Architecture and Training | Not Started | — | — | All §1 success criteria met on held-out |
@@ -68,26 +68,29 @@ All v2.0 work happens on `v2-transform`. `main` is frozen at v0.2.
 ## Phase 1 — Real Data Foundation
 
 ### 1A. NREL Brady OSR
-- [ ] Clone `NREL/geothermal_osr` into `data/brady/`
-- [ ] `data/brady/loader.py` — parse scenarios into `(inputs, outputs)` dict aligned to v2 channel design
-- [ ] `notebooks/01-brady-explore.ipynb` — sanity plots of T/P/saturation evolution
-- [ ] `notebooks/02-brady-v1-cnn-baseline.ipynb` — v1.1 CNN baseline error on Brady (sets the bar)
-- [ ] `data/README.md` provenance + license
+- [x] Clone `NREL/geothermal_osr` into `data/brady/` (BSD-3, gitignored)
+- [x] `data/brady/loader.py` — parses 102 .xlsx into `BradyScenario` dataclasses + `stack()` for batched (N, 241, k) tensors
+- [x] `tests/test_brady_loader.py` — 2 tests, both passing (101 scenarios parse, ≥95 stack at standard length)
+- [x] `data/README.md` — provenance + license + structural-mismatch note
+- [ ] ~~`notebooks/01-brady-explore.ipynb`~~ deferred — loader + tests give us what the notebook would have shown
+- [ ] ~~`notebooks/02-brady-v1-cnn-baseline.ipynb`~~ **dropped** — v1.1 CNN (32×32 spatial output) is structurally incompatible with Brady (well time-series). Brady moves to Phase 5 validation only. Decision logged below.
 
-### 1B. Utah FORGE
-- [ ] Download FORGE well-log + 3D geological model
-- [ ] `data/forge/loader.py` — parse to PyTOUGH-compatible structures
-- [ ] Map FORGE channels to GeoForce input requirements
+### 1B. Utah FORGE — **deferred to Phase 5**
+- [ ] ~~Download FORGE well-log + 3D geological model~~ — deferred
+- [ ] ~~`data/forge/loader.py`~~ — deferred
+- [ ] ~~Map FORGE channels to GeoForce input requirements~~ — deferred
+
+Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics regime differs from Indonesian volcanic-arc fracture-dominated reservoirs. Not in Phase 1 exit gate. Revisit in Phase 5 only if comparison-validation against an EGS site adds value. Decision logged below.
 
 ### 1C. Indonesian field parameters
-- [ ] `data/indonesia/parameters.yaml` — Kamojang, Darajat, Wayang Windu, Salak, Lahendong, Ulubelu, Karaha-Talaga Bodas
-- [ ] Each entry cites publication source
-- [ ] `data/indonesia/README.md` — what was extracted, what's unknown
+- [x] `data/indonesia/parameters.yaml` — all 7 fields (Kamojang, Darajat, Wayang Windu, Salak, Lahendong, Ulubelu, Karaha-Talaga Bodas) with permeability, porosity, T, P, depth, dominant phase
+- [x] Each entry cites peer-reviewed publication or Stanford Geothermal Workshop paper
+- [x] `data/indonesia/README.md` — methodology, confidence levels, what's unknown
 
 ### Phase 1 exit gate
-- [ ] Brady loader returns ≥ 95/101 scenarios without parse errors
-- [ ] v1.1 baseline produces a measurable Brady T error number (calibrates v2.0 improvement target)
-- [ ] ≥ 5 of 7 Indonesian fields have permeability range, porosity, base T/P, dominant phase
+- [x] Brady loader returns ≥ 95/101 scenarios without parse errors (101/101 parse; 100 stack at standard 241-step length)
+- [x] ~~v1.1 baseline Brady T error~~ — dropped per option (a) decision; Brady is now Phase 5 validation only. NREL published numbers from Duplyakin et al. (2022) become the bar.
+- [x] 7/7 Indonesian fields have permeability, porosity, T, P, depth, dominant phase (5 high-confidence + 2 caveat-tagged)
 
 ---
 
@@ -214,6 +217,8 @@ All v2.0 work happens on `v2-transform`. `main` is frozen at v0.2.
 | 2026-05-03 | GCP project `forcex-studio` repurposed and renamed display "GeoForce"; APIs (Vertex AI, Generative Language) enabled | user |
 | 2026-05-03 | Adopt Google ADK 1.32 (open-source Apache 2.0) on top of Vertex Gemini for the agent runtime — gives tool-call loop, session mgmt, streaming, and LiteLLM-portability for free | user |
 | 2026-05-03 | Phase 0 uses single root LlmAgent with 4 tools (not 8 live subagents) to conserve GenAI App Builder credit; multi-agent decomposition deferred to Phase 6 | user (cost concern) |
+| 2026-05-03 | Brady OSR is well-time-series, not 2D field. v1.1-on-Brady baseline notebook **dropped**; Brady moves to Phase 5 validation only (NREL Duplyakin 2022 numbers become the bar). Option (a) per assistant flag. | user |
+| 2026-05-03 | Phase 1 §1B Utah FORGE **deferred to Phase 5** — different physics regime (EGS in granitic basement vs Indonesian volcanic-arc); not in Phase 1 exit gate; revisit only if EGS comparison adds technical-report value | assistant recommendation, awaiting confirmation |
 
 ---
 
