@@ -1,14 +1,20 @@
-"""Claude agent runtime for GeoForce.
+"""Vertex AI Gemini agent runtime for GeoForce v2.0.
 
-Wires the two physics engines — `tools.predict_solver` and
-`tools.predict_surrogate` — into an in-process SDK MCP server, then runs
-a `ClaudeSDKClient` session that can answer geothermal questions using
-those tools.
+Built on Google's Agent Development Kit (ADK). The runtime exposes the
+four GeoForce tools (predict_solver, predict_surrogate, monte_carlo,
+sensitivity_oat) to a Gemini orchestrator running on Vertex AI under the
+GenAI App Builder credit (project ``forcex-studio``).
 
-Run directly to answer Q1:
+The 8-subagent decomposition described in `.claude/agents/*.md` is
+preserved as authoritative role definitions, but Phase 0 instantiates a
+single root agent (planner) with the 4 tools attached directly. Splitting
+into 8 live LlmAgents multiplies LLM calls per query and is deferred to
+Phase 6 once the v2.0 stack is fully validated.
 
-    .venv/bin/python -m agent.runtime \\
-        "If I drill at x=200m, y=100m, what reservoir temperature will I hit \\
+Run a one-off query:
+
+    .venv/bin/python -m agent.runtime \
+        "If I drill at x=200m, y=100m, what reservoir temperature will I hit \
          after 1 year of 0.5 kg/s cold water reinjection at x=50m, y=100m?"
 """
 
@@ -16,339 +22,178 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
 
-import numpy as np
 from dotenv import load_dotenv
 
-from claude_agent_sdk import (
-    AssistantMessage,
-    ClaudeAgentOptions,
-    ClaudeSDKClient,
-    ResultMessage,
-    TextBlock,
-    ToolUseBlock,
-    create_sdk_mcp_server,
-    tool,
-)
+from agent import tools as geoforce_tools
 
-from tools.monte_carlo import run as _mc_run
-from tools.predict_solver import predict as _solver_predict
-from tools.predict_surrogate import predict as _surrogate_predict
-from tools.sensitivity import run as _sens_run
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_MODEL = "claude-opus-4-7"
+DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_LOCATION = "asia-southeast1"
+DEFAULT_PROJECT = "forcex-studio"
 
-SYSTEM_PROMPT = """You are GeoForce, an Indonesian geothermal reservoir engineering agent.
+APP_NAME = "geoforce"
+DEFAULT_USER_ID = "geoforce-cli"
 
-You have four tools:
+SYSTEM_INSTRUCTION = """You are GeoForce, an Indonesian geothermal reservoir engineering agent.
 
-  1. `predict_solver` — runs GeoForce-Solver, a from-scratch implicit
-     backward-Euler Darcy + energy (conduction + upwind advection) solver.
-     Use this when the user wants a physics-grounded, benchmark-validated
-     answer. Slower (seconds), but the numerics are trustworthy.
+You orchestrate four tools to answer drilling, sustainability, and well-placement questions:
 
-  2. `predict_surrogate` — runs the v1.1 ReservoirCNN surrogate.
-     Fast (tens of ms), best for sweeps and UQ. 32x32 grid only.
+  1. predict_solver — implicit Darcy + energy + upwind advection solver.
+     Physics-grounded, benchmark-validated. Slower (seconds). Use when the
+     user wants a trustworthy numerical answer.
 
-  3. `monte_carlo` — Monte Carlo ensemble over parameter distributions.
-     Returns P10/P50/P90 fields + per-draw scalars. Defaults to surrogate
-     engine. Use for Q2-style "how confident" / "P10/P50/P90" questions.
+  2. predict_surrogate — v1.1 ReservoirCNN surrogate. 32x32 grid, ~10-100 ms.
+     Use for sweeps, UQ, and speed-sensitive answers.
 
-  4. `sensitivity_oat` — one-at-a-time sensitivity sweep for a scenario.
-     Ranks parameters by how much they move a chosen scalar metric
-     (probe_temperature_C, mean_temperature_C, etc). Use to answer
-     "which parameter matters most?" or Q3-style placement questions.
+  3. monte_carlo — ensemble over parameter distributions. Returns P10/P50/P90
+     fields and per-draw scalar summaries. Defaults to the surrogate engine.
+     Use for "how confident", "P10/P50/P90", or "what's the range".
 
-Scenario dict schema (keys are optional; sensible defaults exist):
-  - nx, ny (int)         grid cell counts
-  - dx, dy (float, m)    cell size
+  4. sensitivity_oat — one-at-a-time parameter sweep. Ranks parameters by
+     how much they move a chosen metric. Use for "which parameter matters
+     most?" and well-placement questions.
+
+Scenario dict schema (keys are optional; defaults exist):
+  - nx, ny (int): grid cell counts
+  - dx, dy (float, m): cell size
   - porosity (float)
-  - permeability (float, m^2)   OR  log_permeability (float, log10 m^2)
-  - rho_rock, cp_rock, lam_rock  (floats, SI)
+  - permeability (float, m^2) OR log_permeability (float, log10 m^2)
+  - rho_rock, cp_rock, lam_rock (floats, SI)
   - T_initial (float, degC)
-  - P_initial (float, Pa)   [solver]   /   base_pressure (float, Pa) [surrogate]
-  - depth (float, m) [surrogate]
-  - dt (float, s), n_steps (int) [solver only]
-  - wells: list of {i:int, j:int, mass_rate:float (kg/s, +inj, -prod),
-                    injection_temperature: float (degC, required if mass_rate>0)}
+  - P_initial (float, Pa)  [solver]  or  base_pressure (float, Pa) and
+    depth (float, m)  [surrogate]
+  - dt (float, s), n_steps (int)  [solver only]
+  - wells: list of {i:int, j:int, mass_rate:float (kg/s, +inj/-prod),
+                    injection_temperature:float (degC, required if injecting)}
 
-When answering "if I drill at (x,y), what temperature will I hit?":
-  1. Translate the user's (x, y) meters to grid cell (i, j) using dx/dy.
-  2. Build a scenario dict and call `predict_solver`.
-  3. Read `result["temperature"][i, j]` to get the temperature at the drill
-     location after the simulated elapsed time (dt * n_steps seconds).
-  4. Report the temperature, the elapsed simulated time, and any wells that
-     influenced the field.
+When answering "if I drill at (x, y), what temperature will I hit?":
+  1. Translate (x, y) meters to grid cell (i, j) using dx/dy.
+  2. Build a scenario dict and call predict_solver with probe_x_m and
+     probe_y_m.
+  3. Read result["probe"]["temperature_C"] for the answer.
+  4. Cite which engine you used and the elapsed wall-clock seconds.
 
-Always cite which engine you used and the elapsed wall-clock seconds.
-Keep your final answer to ≤ 4 sentences unless more detail is asked for.
+Keep your final answer to ≤ 4 sentences unless more detail is asked.
 """
 
 
-def _serialize_scenario_result(result: dict[str, Any]) -> dict[str, Any]:
-    """Turn a predict() result into a JSON-serializable summary for the model.
-
-    Returning the full (nx, ny) array is too heavy for an LLM tool response,
-    so we return grid metadata + summary statistics + a down-sampled preview.
-    """
-    t = np.asarray(result["temperature"])
-    p = np.asarray(result["pressure"])
-    grid = result["grid"]
-    # 8x8 preview, bilinear-ish via slicing
-    stride_x = max(1, t.shape[0] // 8)
-    stride_y = max(1, t.shape[1] // 8)
-    t_preview = t[::stride_x, ::stride_y].round(2).tolist()
-    p_preview = (p[::stride_x, ::stride_y] / 1.0e6).round(3).tolist()  # MPa
-    return {
-        "engine": result["engine"],
-        "elapsed_seconds": round(float(result["elapsed_seconds"]), 4),
-        "grid": grid,
-        "temperature_C": {
-            "shape": list(t.shape),
-            "min": float(t.min()),
-            "max": float(t.max()),
-            "mean": float(t.mean()),
-            "preview_8x8": t_preview,
-        },
-        "pressure_MPa": {
-            "shape": list(p.shape),
-            "min": float(p.min() / 1.0e6),
-            "max": float(p.max() / 1.0e6),
-            "mean": float(p.mean() / 1.0e6),
-            "preview_8x8": p_preview,
-        },
-    }
-
-
-def _cell_value(result: dict[str, Any], x_m: float, y_m: float) -> dict[str, Any]:
-    grid = result["grid"]
-    i = int(round(x_m / grid["dx"] - 0.5))
-    j = int(round(y_m / grid["dy"] - 0.5))
-    i = int(np.clip(i, 0, grid["nx"] - 1))
-    j = int(np.clip(j, 0, grid["ny"] - 1))
-    return {
-        "i": i,
-        "j": j,
-        "x_cell_center_m": (i + 0.5) * grid["dx"],
-        "y_cell_center_m": (j + 0.5) * grid["dy"],
-        "temperature_C": float(result["temperature"][i, j]),
-        "pressure_MPa": float(result["pressure"][i, j] / 1.0e6),
-    }
-
-
-@tool(
-    "predict_solver",
-    "Run the GeoForce-Solver (implicit Darcy + energy + upwind advection) on "
-    "a scenario dict. Returns grid metadata, summary stats, an 8x8 preview of "
-    "the final temperature/pressure fields, and the wall-clock runtime. For a "
-    "drill-site question, also pass `probe_x_m` and `probe_y_m` to get the "
-    "temperature + pressure at that location.",
-    {
-        "scenario": dict,
-        "probe_x_m": float,
-        "probe_y_m": float,
-    },
-)
-async def predict_solver_tool(args: dict[str, Any]) -> dict[str, Any]:
-    scenario = args.get("scenario") or {}
-    result = _solver_predict(scenario)
-    payload = _serialize_scenario_result(result)
-    if "probe_x_m" in args and "probe_y_m" in args:
-        payload["probe"] = _cell_value(
-            result, float(args["probe_x_m"]), float(args["probe_y_m"])
-        )
-    return {"content": [{"type": "text", "text": json.dumps(payload)}]}
-
-
-@tool(
-    "predict_surrogate",
-    "Run the v1.1 ReservoirCNN surrogate on a scenario dict. 32x32 grid, "
-    "fast (~10-100ms). Returns the same schema as predict_solver. For a "
-    "drill-site question, pass `probe_x_m` and `probe_y_m`.",
-    {
-        "scenario": dict,
-        "probe_x_m": float,
-        "probe_y_m": float,
-    },
-)
-async def predict_surrogate_tool(args: dict[str, Any]) -> dict[str, Any]:
-    scenario = args.get("scenario") or {}
-    result = _surrogate_predict(scenario)
-    payload = _serialize_scenario_result(result)
-    if "probe_x_m" in args and "probe_y_m" in args:
-        payload["probe"] = _cell_value(
-            result, float(args["probe_x_m"]), float(args["probe_y_m"])
-        )
-    return {"content": [{"type": "text", "text": json.dumps(payload)}]}
-
-
-def _serialize_mc_result(result: dict[str, Any]) -> dict[str, Any]:
-    """Compact MC result for LLM consumption: 8x8 P10/P50/P90 previews + scalars."""
-    p10 = np.asarray(result["p10"])
-    p50 = np.asarray(result["p50"])
-    p90 = np.asarray(result["p90"])
-    sx = max(1, p50.shape[0] // 8)
-    sy = max(1, p50.shape[1] // 8)
-    return {
-        "engine": result["engine"],
-        "n_samples": result["n_samples"],
-        "elapsed_seconds": round(float(result["elapsed_seconds"]), 4),
-        "temperature_C": {
-            "shape": list(p50.shape),
-            "p10_8x8": p10[::sx, ::sy].round(2).tolist(),
-            "p50_8x8": p50[::sx, ::sy].round(2).tolist(),
-            "p90_8x8": p90[::sx, ::sy].round(2).tolist(),
-        },
-        "scalar_summary": result["scalar_summary"],
-    }
-
-
-@tool(
-    "monte_carlo",
-    "Monte Carlo ensemble over parameter distributions. Pass `scenario` "
-    "(base dict), `distributions` (name -> {dist, ...}), optional "
-    "`n_samples` (default 200), `engine` ('surrogate' or 'solver', default "
-    "surrogate), and `seed`. Returns 8x8 P10/P50/P90 temperature previews "
-    "and per-draw scalar summaries.",
-    {
-        "scenario": dict,
-        "distributions": dict,
-        "n_samples": int,
-        "engine": str,
-        "seed": int,
-    },
-)
-async def monte_carlo_tool(args: dict[str, Any]) -> dict[str, Any]:
-    scenario = args.get("scenario") or {}
-    distributions = args.get("distributions") or {}
-    n_samples = int(args.get("n_samples", 200))
-    engine = str(args.get("engine", "surrogate"))
-    seed = int(args["seed"]) if "seed" in args else 0
-    result = _mc_run(
-        scenario,
-        distributions,
-        n_samples=n_samples,
-        engine=engine,
-        seed=seed,
-    )
-    return {"content": [{"type": "text", "text": json.dumps(_serialize_mc_result(result))}]}
-
-
-@tool(
-    "sensitivity_oat",
-    "One-at-a-time sensitivity sweep. Pass `scenario`, `params` (name -> "
-    "{low, high}), optional `n_points` (default 5), `engine` ('surrogate' "
-    "or 'solver'), `metric` ('probe_temperature_C', 'mean_temperature_C', "
-    "'min_temperature_C', 'max_temperature_C', 'mean_pressure_MPa'), and "
-    "probe_x_m/probe_y_m if using probe_temperature_C. Returns per-parameter "
-    "sweep curves plus a ranking by |Δmetric|.",
-    {
-        "scenario": dict,
-        "params": dict,
-        "n_points": int,
-        "engine": str,
-        "metric": str,
-        "probe_x_m": float,
-        "probe_y_m": float,
-    },
-)
-async def sensitivity_tool(args: dict[str, Any]) -> dict[str, Any]:
-    scenario = args.get("scenario") or {}
-    params = args.get("params") or {}
-    kwargs: dict[str, Any] = {
-        "engine": str(args.get("engine", "surrogate")),
-        "n_points": int(args.get("n_points", 5)),
-        "metric": str(args.get("metric", "probe_temperature_C")),
-    }
-    if "probe_x_m" in args:
-        kwargs["probe_x_m"] = float(args["probe_x_m"])
-    if "probe_y_m" in args:
-        kwargs["probe_y_m"] = float(args["probe_y_m"])
-    result = _sens_run(scenario, params, **kwargs)
-    # result is already LLM-sized; just round floats.
-    for name, curve in result["curves"].items():
-        curve["values"] = [round(float(v), 6) for v in curve["values"]]
-        curve["metric"] = [round(float(m), 4) for m in curve["metric"]]
-        curve["delta"] = round(float(curve["delta"]), 4)
-        curve["slope_per_unit"] = round(float(curve["slope_per_unit"]), 4)
-    result["baseline_metric"] = round(float(result["baseline_metric"]), 4)
-    result["elapsed_seconds"] = round(float(result["elapsed_seconds"]), 4)
-    return {"content": [{"type": "text", "text": json.dumps(result)}]}
-
-
 def _load_env() -> None:
-    repo_root = Path(__file__).resolve().parent.parent
-    load_dotenv(repo_root / ".env")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        sys.stderr.write("ANTHROPIC_API_KEY missing (expected in .env)\n")
+    """Load .env, validate Vertex credentials, and export ADK env vars."""
+    load_dotenv(REPO_ROOT / ".env")
+
+    sa_key = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if not sa_key or not Path(sa_key).is_file():
+        sys.stderr.write(
+            "GOOGLE_APPLICATION_CREDENTIALS missing or file not found "
+            "(expected in .env, pointing at the Vertex SA key).\n"
+        )
         sys.exit(2)
 
+    project = os.environ.get("GCP_PROJECT", DEFAULT_PROJECT)
+    location = os.environ.get("GCP_LOCATION", DEFAULT_LOCATION)
 
-def build_options() -> ClaudeAgentOptions:
-    mcp_server = create_sdk_mcp_server(
-        name="geoforce-tools",
+    # ADK / google-genai pick up Vertex routing from these three env vars.
+    os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "TRUE"
+    os.environ["GOOGLE_CLOUD_PROJECT"] = project
+    os.environ["GOOGLE_CLOUD_LOCATION"] = location
+
+
+def build_agent():
+    """Construct the root LlmAgent with the four GeoForce tools attached.
+
+    Returns the ADK LlmAgent. Imported lazily so module import doesn't
+    require ADK to be installed (e.g., for unit tests of helpers).
+    """
+    from google.adk.agents import LlmAgent
+
+    model = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+    return LlmAgent(
+        name="planner",
+        model=model,
+        description=(
+            "GeoForce orchestrator — answers Indonesian geothermal "
+            "reservoir engineering questions using physics solver, "
+            "ML surrogate, Monte Carlo, and sensitivity tools."
+        ),
+        instruction=SYSTEM_INSTRUCTION,
         tools=[
-            predict_solver_tool,
-            predict_surrogate_tool,
-            monte_carlo_tool,
-            sensitivity_tool,
+            geoforce_tools.predict_solver,
+            geoforce_tools.predict_surrogate,
+            geoforce_tools.monte_carlo,
+            geoforce_tools.sensitivity_oat,
         ],
     )
-    return ClaudeAgentOptions(
-        model=DEFAULT_MODEL,
-        system_prompt=SYSTEM_PROMPT,
-        mcp_servers={"geoforce": mcp_server},
-        allowed_tools=[
-            "mcp__geoforce__predict_solver",
-            "mcp__geoforce__predict_surrogate",
-            "mcp__geoforce__monte_carlo",
-            "mcp__geoforce__sensitivity_oat",
-        ],
-        max_turns=12,
+
+
+def build_runner():
+    """Build an ADK Runner with an in-memory session service."""
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService
+
+    return Runner(
+        agent=build_agent(),
+        app_name=APP_NAME,
+        session_service=InMemorySessionService(),
     )
 
 
 async def answer(query: str, *, verbose: bool = True) -> str:
-    """Run one query end-to-end and return the final assistant text."""
+    """Run one query end-to-end and return the final assistant text.
+
+    Creates a fresh ADK session per call. For multi-turn use, see
+    agent.api which keeps sessions alive across HTTP requests.
+    """
+    from google.genai import types as genai_types
+
     _load_env()
-    options = build_options()
+    runner = build_runner()
+    session = await runner.session_service.create_session(
+        app_name=APP_NAME, user_id=DEFAULT_USER_ID
+    )
+    user_message = genai_types.Content(
+        role="user", parts=[genai_types.Part(text=query)]
+    )
+
     final_text_parts: list[str] = []
-
-    async with ClaudeSDKClient(options=options) as client:
-        await client.query(query)
-        async for message in client.receive_response():
-            if verbose and isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        print(block.text, end="", flush=True)
-                    elif isinstance(block, ToolUseBlock):
-                        print(f"\n[tool: {block.name}]", flush=True)
-            elif isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        final_text_parts.append(block.text)
-            if isinstance(message, ResultMessage):
+    async for event in runner.run_async(
+        user_id=DEFAULT_USER_ID,
+        session_id=session.id,
+        new_message=user_message,
+    ):
+        if not event.content or not event.content.parts:
+            continue
+        is_final = event.is_final_response()
+        for part in event.content.parts:
+            if getattr(part, "text", None):
                 if verbose:
-                    print("", flush=True)
-                if not final_text_parts and message.result:
-                    final_text_parts.append(message.result)
-                break
+                    print(part.text, end="", flush=True)
+                if is_final:
+                    final_text_parts.append(part.text)
+            if getattr(part, "function_call", None) and verbose:
+                print(f"\n[tool: {part.function_call.name}]", flush=True)
 
-    return "".join(final_text_parts) if final_text_parts else ""
+    if verbose:
+        print("", flush=True)
+    return "".join(final_text_parts)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Answer a geothermal question with the GeoForce agent.")
+    parser = argparse.ArgumentParser(
+        description="Answer a geothermal question with the GeoForce agent.",
+    )
     parser.add_argument("query", nargs="+", help="Natural-language question.")
-    parser.add_argument("--quiet", action="store_true", help="Suppress streaming output.")
+    parser.add_argument(
+        "--quiet", action="store_true", help="Suppress streaming output."
+    )
     args = parser.parse_args()
-    q = " ".join(args.query)
-    asyncio.run(answer(q, verbose=not args.quiet))
+    text = asyncio.run(answer(" ".join(args.query), verbose=not args.quiet))
+    if args.quiet:
+        print(text)
 
 
 if __name__ == "__main__":

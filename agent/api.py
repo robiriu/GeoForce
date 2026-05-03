@@ -2,14 +2,20 @@
 
 Endpoints:
 
-  GET  /health                 → { "ok": true }
-  GET  /scenarios              → demo/scenarios.yaml entries
-  POST /predict                → runs solver and/or surrogate, returns fields
-  POST /query                  → streams Server-Sent Events from the agent:
-                                   event: text     data: {"text": "..."}
-                                   event: tool     data: {"name": "...", "input": {...}}
-                                   event: result   data: {"final_text": "...", "stop_reason": "..."}
-                                   event: error    data: {"message": "..."}
+  GET    /health                 → { "ok": true }
+  GET    /scenarios              → demo/scenarios.yaml entries
+  POST   /predict                → runs solver and/or surrogate, returns fields
+  POST   /query                  → streams Server-Sent Events from the agent:
+                                     event: text     data: {"text": "..."}
+                                     event: tool     data: {"name": "...", "input": {...}}
+                                     event: result   data: {"final_text": "...", "stop_reason": "..."}
+                                     event: error    data: {"message": "..."}
+  POST   /sessions               → open a multi-turn session (returns session_id)
+  DELETE /sessions/{sid}         → close a session
+  POST   /sessions/{sid}/query   → stream a turn in an existing session
+
+The SSE event shape is stable across LLM-provider migrations (CLAUDE.md §2,
+AGENTS.md principle #6). The dashboard depends on it.
 
 Run with:
 
@@ -21,7 +27,6 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, AsyncGenerator, Literal
@@ -33,25 +38,20 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from google.genai import types as genai_types
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from claude_agent_sdk import (
-    AssistantMessage,
-    ClaudeSDKClient,
-    ResultMessage,
-    TextBlock,
-    ToolUseBlock,
-)
-
-from agent.runtime import _load_env, build_options
+from agent.runtime import APP_NAME, _load_env, build_runner
 from tools.predict_solver import predict as solver_predict
 from tools.predict_surrogate import predict as surrogate_predict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCENARIOS_PATH = REPO_ROOT / "demo" / "scenarios.yaml"
 
-app = FastAPI(title="GeoForce Agent API", version="0.1")
+ANON_USER_ID = "geoforce-anon"
+
+app = FastAPI(title="GeoForce Agent API", version="2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -59,6 +59,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Single ADK Runner shared across the process — built lazily on first use so
+# import-time test code (and the no-LLM /predict endpoint) doesn't require
+# Vertex credentials.
+_RUNNER = None
+
+
+def _runner():
+    global _RUNNER
+    if _RUNNER is None:
+        _load_env()
+        _RUNNER = build_runner()
+    return _RUNNER
 
 
 class QueryRequest(BaseModel):
@@ -80,36 +94,49 @@ def scenarios() -> dict[str, Any]:
     return data
 
 
-async def _stream_agent(query: str) -> AsyncGenerator[dict[str, str], None]:
-    _load_env()
-    options = build_options()
+def _user_message(text: str) -> genai_types.Content:
+    return genai_types.Content(role="user", parts=[genai_types.Part(text=text)])
+
+
+async def _stream_events(
+    user_id: str, session_id: str, prompt: str
+) -> AsyncGenerator[dict[str, str], None]:
+    """Run one agent turn and yield SSE-shaped dicts.
+
+    Translates ADK Event stream into the v0.2 SSE event names so the
+    dashboard doesn't need to change.
+    """
     final_parts: list[str] = []
     final_stop: str | None = None
 
     try:
-        async with ClaudeSDKClient(options=options) as client:
-            await client.query(query)
-            async for message in client.receive_response():
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            final_parts.append(block.text)
-                            yield {
-                                "event": "text",
-                                "data": json.dumps({"text": block.text}),
-                            }
-                        elif isinstance(block, ToolUseBlock):
-                            yield {
-                                "event": "tool",
-                                "data": json.dumps(
-                                    {"name": block.name, "input": block.input}
-                                ),
-                            }
-                elif isinstance(message, ResultMessage):
-                    final_stop = getattr(message, "stop_reason", None)
-                    if not final_parts and message.result:
-                        final_parts.append(message.result)
-                    break
+        runner = _runner()
+        async for event in runner.run_async(
+            user_id=user_id,
+            session_id=session_id,
+            new_message=_user_message(prompt),
+        ):
+            if not event.content or not event.content.parts:
+                continue
+            is_final = event.is_final_response()
+            for part in event.content.parts:
+                text = getattr(part, "text", None)
+                if text:
+                    if is_final:
+                        final_parts.append(text)
+                    yield {
+                        "event": "text",
+                        "data": json.dumps({"text": text}),
+                    }
+                fc = getattr(part, "function_call", None)
+                if fc and fc.name:
+                    args = dict(fc.args) if fc.args else {}
+                    yield {
+                        "event": "tool",
+                        "data": json.dumps({"name": fc.name, "input": args}),
+                    }
+            if is_final:
+                final_stop = "stop"
     except Exception as exc:  # noqa: BLE001
         yield {"event": "error", "data": json.dumps({"message": str(exc)})}
         return
@@ -145,12 +172,6 @@ def _serialize_field(result: dict[str, Any]) -> dict[str, Any]:
 
 @app.post("/predict")
 def predict(req: PredictRequest) -> dict[str, Any]:
-    """Run one or both engines on a scenario and return field arrays.
-
-    Accepts either ``scenario_id`` (pulled from demo/scenarios.yaml) or
-    an inline ``scenario`` dict. Returns solver and/or surrogate results
-    with temperature/pressure arrays suitable for client-side heatmaps.
-    """
     scenario: dict[str, Any] | None = req.scenario
     if scenario is None and req.scenario_id:
         data = scenarios()
@@ -172,41 +193,48 @@ def predict(req: PredictRequest) -> dict[str, Any]:
     return out
 
 
+def _resolve_prompt(query: str, scenario_id: str | None) -> str:
+    if not scenario_id:
+        return query
+    data = scenarios()
+    match = next(
+        (s for s in data.get("scenarios", []) if s.get("id") == scenario_id),
+        None,
+    )
+    if match and match.get("question"):
+        if query:
+            return f"{match['question']}\n\nUser override: {query}"
+        return match["question"]
+    return query
+
+
 @app.post("/query")
 async def query(req: QueryRequest) -> EventSourceResponse:
-    """Stream the agent response as SSE.
-
-    If ``scenario_id`` is provided, we prepend the matching question from
-    demo/scenarios.yaml so the Streamlit/React client can fire-and-forget
-    a preset scenario card.
-    """
-    prompt = req.query
-    if req.scenario_id:
-        data = scenarios()
-        match = next(
-            (s for s in data.get("scenarios", []) if s.get("id") == req.scenario_id),
-            None,
-        )
-        if match and match.get("question"):
-            prompt = f"{match['question']}\n\nUser override: {req.query}" if req.query else match["question"]
-
-    return EventSourceResponse(_stream_agent(prompt))
+    """Stream a single-turn agent response as SSE."""
+    prompt = _resolve_prompt(req.query, req.scenario_id)
+    runner = _runner()
+    session = await runner.session_service.create_session(
+        app_name=APP_NAME, user_id=ANON_USER_ID
+    )
+    return EventSourceResponse(
+        _stream_events(ANON_USER_ID, session.id, prompt)
+    )
 
 
 # ---- Multi-turn sessions ----------------------------------------------------
-# A "session" holds one long-lived ClaudeSDKClient so the dashboard can have a
-# real chat with the agent — the model sees prior turns + tool results. Each
-# session has a per-session asyncio.Lock so two concurrent /query calls don't
-# interleave on the same transport. Sessions idle > TTL are reaped.
+# A "session" is an ADK conversation: the planner agent sees prior turns and
+# tool results within the session. We keep a thin _Session wrapper so we can
+# hold a per-session asyncio.Lock (preventing interleaved /query calls) and a
+# TTL reaper. ADK's InMemorySessionService stores the actual chat history.
 
-SESSION_TTL_SEC = 600  # 10 min idle
-SESSION_CAP = 32  # evict oldest when full
+SESSION_TTL_SEC = 600
+SESSION_CAP = 32
 
 
 @dataclass
 class _Session:
-    client: ClaudeSDKClient
-    stack: AsyncExitStack
+    adk_session_id: str
+    user_id: str
     last_used: float
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
@@ -215,15 +243,17 @@ SESSIONS: dict[str, _Session] = {}
 
 
 async def _open_session() -> str:
-    _load_env()
-    stack = AsyncExitStack()
-    try:
-        client = await stack.enter_async_context(ClaudeSDKClient(options=build_options()))
-    except Exception:
-        await stack.aclose()
-        raise
+    runner = _runner()
+    user_id = uuid4().hex[:12]
+    adk_session = await runner.session_service.create_session(
+        app_name=APP_NAME, user_id=user_id
+    )
     sid = uuid4().hex[:16]
-    SESSIONS[sid] = _Session(client=client, stack=stack, last_used=time.time())
+    SESSIONS[sid] = _Session(
+        adk_session_id=adk_session.id,
+        user_id=user_id,
+        last_used=time.time(),
+    )
     return sid
 
 
@@ -231,8 +261,13 @@ async def _close_session(sid: str) -> None:
     sess = SESSIONS.pop(sid, None)
     if sess is None:
         return
+    runner = _runner()
     try:
-        await sess.stack.aclose()
+        await runner.session_service.delete_session(
+            app_name=APP_NAME,
+            user_id=sess.user_id,
+            session_id=sess.adk_session_id,
+        )
     except Exception:  # noqa: BLE001 — best-effort teardown
         pass
 
@@ -241,7 +276,11 @@ async def _reap_sessions() -> None:
     while True:
         try:
             now = time.time()
-            stale = [sid for sid, s in list(SESSIONS.items()) if now - s.last_used > SESSION_TTL_SEC]
+            stale = [
+                sid
+                for sid, s in list(SESSIONS.items())
+                if now - s.last_used > SESSION_TTL_SEC
+            ]
             for sid in stale:
                 await _close_session(sid)
         except Exception:  # noqa: BLE001
@@ -256,8 +295,6 @@ async def _startup() -> None:
 
 @app.post("/sessions")
 async def create_session() -> dict[str, str]:
-    """Open a multi-turn session. Returns a session_id the client uses
-    for subsequent /sessions/{id}/query calls."""
     if len(SESSIONS) >= SESSION_CAP:
         oldest = min(SESSIONS, key=lambda k: SESSIONS[k].last_used)
         await _close_session(oldest)
@@ -277,78 +314,26 @@ async def drop_session(sid: str) -> dict[str, bool]:
 async def _stream_session(
     sess: _Session, prompt: str
 ) -> AsyncGenerator[dict[str, str], None]:
-    # Serialize queries on the same session; SDK transport isn't safe for
-    # concurrent .query() calls.
     async with sess.lock:
         sess.last_used = time.time()
-        final_parts: list[str] = []
-        final_stop: str | None = None
-        try:
-            await sess.client.query(prompt)
-            async for message in sess.client.receive_response():
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            final_parts.append(block.text)
-                            yield {
-                                "event": "text",
-                                "data": json.dumps({"text": block.text}),
-                            }
-                        elif isinstance(block, ToolUseBlock):
-                            yield {
-                                "event": "tool",
-                                "data": json.dumps(
-                                    {"name": block.name, "input": block.input}
-                                ),
-                            }
-                elif isinstance(message, ResultMessage):
-                    final_stop = getattr(message, "stop_reason", None)
-                    if not final_parts and message.result:
-                        final_parts.append(message.result)
-                    break
-        except Exception as exc:  # noqa: BLE001
-            yield {"event": "error", "data": json.dumps({"message": str(exc)})}
-            return
+        async for event in _stream_events(sess.user_id, sess.adk_session_id, prompt):
+            yield event
         sess.last_used = time.time()
-        yield {
-            "event": "result",
-            "data": json.dumps(
-                {"final_text": "".join(final_parts), "stop_reason": final_stop}
-            ),
-        }
 
 
 @app.post("/sessions/{sid}/query")
 async def session_query(sid: str, req: QueryRequest) -> EventSourceResponse:
-    """Stream a turn in an existing multi-turn session as SSE."""
     sess = SESSIONS.get(sid)
     if sess is None:
         raise HTTPException(404, f"session {sid!r} not found or expired")
-    prompt = req.query
-    if req.scenario_id:
-        data = scenarios()
-        match = next(
-            (s for s in data.get("scenarios", []) if s.get("id") == req.scenario_id),
-            None,
-        )
-        if match and match.get("question"):
-            prompt = (
-                f"{match['question']}\n\nUser override: {req.query}"
-                if req.query
-                else match["question"]
-            )
+    prompt = _resolve_prompt(req.query, req.scenario_id)
     return EventSourceResponse(_stream_session(sess, prompt))
 
 
 # ---- Serve built React dashboard (if present) -------------------------------
-# In dev, the dashboard runs on Vite (http://localhost:5173) and proxies /api
-# to us. In docker/prod we bake `dashboard/dist/` into the image and serve it
-# at the same origin so there's only one port to expose.
 _DIST = REPO_ROOT / "dashboard" / "dist"
 if _DIST.is_dir():
-    app.mount(
-        "/assets", StaticFiles(directory=_DIST / "assets"), name="assets"
-    )
+    app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
 
     @app.get("/")
     def _spa_index() -> FileResponse:
