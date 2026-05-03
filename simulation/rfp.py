@@ -50,6 +50,11 @@ RFP_POROSITY: float = 0.10
 RFP_MASS_RATE_KG_S: float = -10.0
 RFP_DURATION_S: float = 86400.0
 SAMPLE_RADIAL_OFFSETS: tuple[int, ...] = (3, 5, 7, 10)
+# Cap on adaptive time-step growth. The cell diffusion time
+# (DX/2)^2 / alpha ~ 1600 s sets an upper bound for backward-Euler to
+# resolve the transient pressure pulse propagation. Setting the cap to
+# ~1/3 of that gives >170 steps per 86400 s simulation.
+RFP_MAX_STEP_S: float = 500.0
 
 
 @dataclass(frozen=True)
@@ -136,9 +141,9 @@ def build_rfp_deck_doc() -> dict:
         }],
         "time": {
             "step": {
-                "size": 60.0,
+                "size": 10.0,
                 "adapt": {"on": True, "method": "iteration"},
-                "maximum": {"size": RFP_DURATION_S / 4.0},
+                "maximum": {"size": RFP_MAX_STEP_S, "number": 100000},
             },
             "stop": RFP_DURATION_S,
         },

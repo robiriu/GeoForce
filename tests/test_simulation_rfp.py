@@ -132,6 +132,32 @@ def test_theis_window_safety_margins():
     )
 
 
+def test_time_step_ceiling_below_cell_diffusion_time():
+    """Backward-Euler under-resolves transient propagation if the time
+    step is much larger than the cell diffusion time. Catches the v10
+    bug where max_step = duration/4 left only ~5 implicit steps and
+    numerical drawdown decayed too steeply with radius.
+    """
+    from simulation.rfp import (
+        DX_RFP_M,
+        RFP_MAX_STEP_S,
+        RFP_PERMEABILITY_M2,
+        RFP_POROSITY,
+        RFP_TOTAL_COMPRESSIBILITY_1_PA,
+        RFP_VISCOSITY_PA_S,
+    )
+    alpha = RFP_PERMEABILITY_M2 / (
+        RFP_VISCOSITY_PA_S * RFP_POROSITY * RFP_TOTAL_COMPRESSIBILITY_1_PA
+    )
+    cell_diffusion_time = (DX_RFP_M / 2.0) ** 2 / alpha
+    ratio = RFP_MAX_STEP_S / cell_diffusion_time
+    assert ratio < 0.5, (
+        f"max time step {RFP_MAX_STEP_S} s is too large vs cell "
+        f"diffusion time {cell_diffusion_time:.1f} s (ratio {ratio:.2f}); "
+        f"backward-Euler will under-resolve the transient"
+    )
+
+
 def test_storativity_contract_matches_iapws_c_w():
     """The c_t fed to Theis must equal IAPWS isothermal water
     compressibility at the run state, since the rfp deck declares no
