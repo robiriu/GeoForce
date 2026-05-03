@@ -114,7 +114,7 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 
 ### 2C. Block B — Kaggle Waiwera execution
 - [ ] `notebooks/03-kaggle-sim-burst.ipynb` — pulls Waiwera Docker image (or conda), runs RFP benchmark, then a job-range from the SQLite queue
-- [ ] Published as `robiriu/forcex-ai-geoforce-sim-burst` on Kaggle (no real orgs on Kaggle; `forcex-ai-` prefix marks provenance)
+- [ ] Published as `robidanyriu/forcex-ai-geoforce-sim-burst` on Kaggle (no real orgs on Kaggle; `forcex-ai-` prefix marks provenance)
 - [ ] HF Dataset push automation at end of session → `ForceX-AI/geoforce-v2-data`
 - [ ] RFP benchmark passes within 1% of analytical (Block B exit)
 
@@ -224,7 +224,7 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 | 2026-05-03 | Brady OSR is well-time-series, not 2D field. v1.1-on-Brady baseline notebook **dropped**; Brady moves to Phase 5 validation only (NREL Duplyakin 2022 numbers become the bar). Option (a) per assistant flag. | user |
 | 2026-05-03 | Phase 1 §1B Utah FORGE **deferred to Phase 5** — different physics regime (EGS in granitic basement vs Indonesian volcanic-arc); not in Phase 1 exit gate; revisit only if EGS comparison adds technical-report value | assistant recommendation, awaiting confirmation |
 | 2026-05-03 | Phase 2 Waiwera execution is **Kaggle-only**; VPS keeps orchestration code only. systemd-worker deliverable dropped. Reason: VPS at sustained ~50% CPU + swap exhausted under live ForceX-AI/gen21cinema container stack — installing Waiwera there would risk OOM-killing production. | user (after assistant hardware report) |
-| 2026-05-03 | Kaggle artifacts use `robiriu/forcex-ai-*` slug prefix (Kaggle has no first-class orgs). API token named `forcex-ai` already provisioned. HF still uses true `ForceX-AI` org for v2.0 dataset/model/Spaces. | user |
+| 2026-05-03 | Kaggle artifacts use `robidanyriu/forcex-ai-*` slug prefix (Kaggle handle is `robidanyriu`, not `robiriu`; Kaggle has no first-class orgs). Legacy API key written to `/home/ubuntu/.kaggle/kaggle.json` and verified. HF still uses true `ForceX-AI` org for v2.0 dataset/model/Spaces. | user |
 
 ---
 

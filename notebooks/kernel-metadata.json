@@ -1,0 +1,14 @@
+{
+  "id": "robidanyriu/forcex-ai-geoforce-v2-0-simulation-burst",
+  "title": "ForceX AI — GeoForce v2.0 Simulation Burst",
+  "code_file": "03-kaggle-sim-burst.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

@@ -124,7 +124,7 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 3. `simulation/deck.py` — generates Waiwera input decks from a `Scenario` (sampling.py) + `WellSet` (wells.py) + `GridSpec` (grid.py). Round-trip tested via PyTOUGH.
 4. `simulation/queue.py` — SQLite job queue at `simulation/queue.db`. Producer side runs on the VPS; the Kaggle notebook is the consumer (pulls a job range, runs Waiwera, pushes outputs).
 5. `simulation/campaign.py` — driver: pull job from queue → render deck → invoke Waiwera (only when running on Kaggle) → parse outputs → write HDF5 chunk.
-6. **Kaggle burst notebook** — published as `robiriu/forcex-ai-geoforce-sim-burst` (Kaggle has no real orgs; we mark provenance via the `forcex-ai-` slug prefix and the `forcex-ai` API-token name). Parameterized by job-range, designed for the 12-hr session cap.
+6. **Kaggle burst notebook** — published as `robidanyriu/forcex-ai-geoforce-sim-burst` (Kaggle has no real orgs; we mark provenance via the `forcex-ai-` slug prefix and the `forcex-ai` API-token name). Parameterized by job-range, designed for the 12-hr session cap.
 7. **100-scenario pilot batch** — uploaded to `ForceX-AI/geoforce-v2-data` on HF from inside the Kaggle notebook on completion.
 8. `notebooks/04-pilot-batch-audit.ipynb` — sanity audit (runs on VPS or anywhere): mass conservation, energy conservation, no NaNs, T bounded by [T_inj, T_max + 20 °C], P within reasonable range. Reports % of pilot batch that passes audit.
 
