@@ -173,15 +173,27 @@ cp = run_waiwera_rfp(
     timeout_s=600,
 )
 print(f"Waiwera run rc={cp.returncode} in {time.time()-t_start:.1f}s")
-if cp.returncode != 0:
-    print("--- stdout (tail) ---")
-    print(cp.stdout[-2000:])
-    print("--- stderr (tail) ---")
-    print(cp.stderr[-2000:])
+print("--- stdout (tail) ---")
+print(cp.stdout[-1500:])
+print("--- stderr (tail) ---")
+print(cp.stderr[-1500:])
 assert cp.returncode == 0, "Waiwera failed on RFP deck"
 
 # %%
+import h5py
+h5_path = RFP_DIR / deck.h5_filename
+with h5py.File(str(h5_path), "r") as _f:
+    _time = _f["time"][:]
+    _p = _f["cell_fields"]["fluid_pressure"]
+    print(f"H5 time array (len={len(_time)}): {list(_time)}")
+    print(f"H5 fluid_pressure shape: {_p.shape}")
+    print(f"H5 last-row pressure (min/max/mean): "
+          f"{_p[-1].min():.1f} / {_p[-1].max():.1f} / {_p[-1].mean():.1f}")
+print(f"deck.theis_params: {deck.theis_params}")
+print(f"deck.sample_cell_ids: {deck.sample_cell_ids}")
+
 samples = parse_rfp_output(RFP_DIR / deck.h5_filename, deck)
+print(f"samples: {samples}")
 rows = compare_to_theis(samples, deck)
 
 print(f"{'r (m)':>8} {'t (s)':>10} {'p_num (Pa)':>14} {'p_ana (Pa)':>14} {'rel_err':>10}")
