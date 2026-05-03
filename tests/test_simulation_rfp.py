@@ -28,7 +28,7 @@ def test_deck_doc_basic_shape():
     doc = build_rfp_deck_doc()
     n_cells = NX_RFP * NY_RFP * NZ_RFP
 
-    assert doc["eos"]["name"] == "we"
+    assert doc["eos"]["name"] == "w"
     assert doc["initial"]["region"] == 1
     assert len(doc["initial"]["primary"]) == n_cells
     assert len(doc["rock"]["types"][0]["cells"]) == n_cells
@@ -129,4 +129,101 @@ def test_theis_window_safety_margins():
     assert u_boundary > 3.0, (
         f"domain too small for closed-boundary effects to be negligible "
         f"(u_boundary={u_boundary:.3g})"
+    )
+
+
+def test_storativity_contract_matches_iapws_c_w():
+    """The c_t fed to Theis must equal IAPWS isothermal water
+    compressibility at the run state, since the rfp deck declares no
+    rock pore-compressibility under EOS w. Catches the v9 bug where
+    c_t = 1.5e-10 was 3x too small.
+    """
+    try:
+        from iapws import IAPWS97
+    except ImportError:
+        return  # iapws not installed in this env; skip
+
+    from simulation.rfp import (
+        RFP_PRESSURE_PA,
+        RFP_TEMPERATURE_C,
+        RFP_TOTAL_COMPRESSIBILITY_1_PA,
+    )
+    T_K = RFP_TEMPERATURE_C + 273.15
+    P_MPa = RFP_PRESSURE_PA / 1.0e6
+    dP = 0.01
+    rho_lo = IAPWS97(T=T_K, P=P_MPa - dP).rho
+    rho_hi = IAPWS97(T=T_K, P=P_MPa + dP).rho
+    rho_0 = IAPWS97(T=T_K, P=P_MPa).rho
+    c_w = (rho_hi - rho_lo) / (2.0 * dP * 1.0e6) / rho_0
+
+    rel = abs(RFP_TOTAL_COMPRESSIBILITY_1_PA - c_w) / c_w
+    assert rel < 0.05, (
+        f"c_t = {RFP_TOTAL_COMPRESSIBILITY_1_PA:.3e} disagrees with IAPWS "
+        f"c_w = {c_w:.3e} at ({RFP_TEMPERATURE_C} C, {P_MPa} MPa) "
+        f"by {rel*100:.1f}% (>5%). Theis storativity will not match Waiwera."
+    )
+
+
+def test_eos_region_primary_variable_consistency():
+    """Allowed (eos.name, initial.region, primary_variable_names) tuples
+    per Waiwera's documented EOS schema. Catches schema bugs like the
+    deck.py:170 mismatch (we + region 1 + [P, vapour_saturation]).
+    """
+    doc = build_rfp_deck_doc()
+    eos_name = doc["eos"]["name"]
+    region = doc["initial"]["region"]
+    pvars = tuple(doc["eos"]["primary_variable_names"])
+
+    allowed = {
+        ("w", 1): ("pressure",),
+        ("we", 1): ("pressure", "temperature"),
+        ("we", 4): ("pressure", "vapour_saturation"),
+    }
+    key = (eos_name, region)
+    assert key in allowed, f"unrecognised eos+region combo: {key}"
+    assert pvars == allowed[key], (
+        f"primary_variable_names {pvars} not allowed for "
+        f"eos={eos_name}, region={region}; expected {allowed[key]}"
+    )
+
+
+def test_mesh_cell_volume_matches_dx_dy_dz():
+    """Loaded ExodusII mesh must have cells of volume DX*DY*DZ, and the
+    deck must NOT redundantly set mesh.thickness (we ship a real 3D
+    mesh). Catches the v9 mesh.thickness double-count concern.
+    """
+    import tempfile, pathlib
+    from simulation.rfp import build_rfp_deck, DZ_RFP_M
+
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            deck = build_rfp_deck(pathlib.Path(td))
+        except ImportError:
+            return  # PyTOUGH/meshio/netCDF4 not installed; skip
+
+        try:
+            import meshio
+        except ImportError:
+            return
+
+        mesh = meshio.read(str(deck.mesh_path))
+        # The exodus mesh writer emits hexahedral cells.
+        hex_blocks = [c for c in mesh.cells if c.type == "hexahedron"]
+        assert hex_blocks, "no hex cells found in mesh"
+        n_cells = sum(b.data.shape[0] for b in hex_blocks)
+        assert n_cells == NX_RFP * NY_RFP * NZ_RFP
+
+        # Spot-check one cell's volume from its 8 corner points.
+        block = hex_blocks[0]
+        corners = mesh.points[block.data[0]]
+        dx = corners[:, 0].max() - corners[:, 0].min()
+        dy = corners[:, 1].max() - corners[:, 1].min()
+        dz = corners[:, 2].max() - corners[:, 2].min()
+        assert math.isclose(dx, DX_RFP_M, rel_tol=1e-6)
+        assert math.isclose(dy, DX_RFP_M, rel_tol=1e-6)
+        assert math.isclose(dz, DZ_RFP_M, rel_tol=1e-6)
+
+    doc = build_rfp_deck_doc()
+    assert "thickness" not in doc["mesh"], (
+        "mesh.thickness must not be set on a 3D mesh (would double-count)"
     )

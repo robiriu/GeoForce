@@ -34,9 +34,17 @@ WELL_J: int = NY_RFP // 2
 
 RFP_TEMPERATURE_C: float = 80.0
 RFP_PRESSURE_PA: float = 5.0e6
-RFP_VISCOSITY_PA_S: float = 3.55e-4
-RFP_DENSITY_KG_M3: float = 971.8
-RFP_TOTAL_COMPRESSIBILITY_1_PA: float = 1.5e-10  # phi*c_w + c_r for water at 80 C
+# IAPWS-IF97 at (80 C, 5 MPa). Used both in the Waiwera deck (rock fluid
+# properties via EOS w) and in the Theis analytical reference. Keeping
+# both halves of the comparison driven from the same single-phase liquid
+# state is what the storativity contract test pins down.
+RFP_VISCOSITY_PA_S: float = 3.554e-4
+RFP_DENSITY_KG_M3: float = 973.98
+# Isothermal water compressibility c_w = (1/rho) d_rho/dP at constant T,
+# computed from IAPWS-IF97 by central difference at (80 C, 5 MPa). The
+# rfp deck declares no rock pore-compressibility, so under EOS w the
+# effective storativity Waiwera solves with is fluid-only -> c_t = c_w.
+RFP_TOTAL_COMPRESSIBILITY_1_PA: float = 4.536e-10
 RFP_PERMEABILITY_M2: float = 1.0e-13
 RFP_POROSITY: float = 0.10
 RFP_MASS_RATE_KG_S: float = -10.0
@@ -90,25 +98,32 @@ def _build_mesh(out_dir: Path, mesh_filename: str) -> Path:
 
 
 def build_rfp_deck_doc() -> dict:
-    """Pure builder for the Waiwera JSON document — no I/O."""
+    """Pure builder for the Waiwera JSON document — no I/O.
+
+    EOS is `w` (isothermal pure water). Theis is strictly isothermal; the
+    `we` energy coupling adds apparent storativity that breaks the
+    benchmark. Operating temperature is fixed at RFP_TEMPERATURE_C via
+    `eos.temperature`, primary variable is pressure only.
+    """
     n_cells = NX_RFP * NY_RFP * NZ_RFP
     well_cell = _block_index(WELL_I, WELL_J)
-    primary = [[RFP_PRESSURE_PA, RFP_TEMPERATURE_C] for _ in range(n_cells)]
+    primary = [[RFP_PRESSURE_PA] for _ in range(n_cells)]
     return {
         "title": "GeoForce v2.0 - RFP / Theis benchmark",
         "thermodynamics": {"name": "iapws", "extrapolate": True},
-        "eos": {"name": "we", "primary_variable_names": ["pressure", "temperature"]},
+        "eos": {
+            "name": "w",
+            "temperature": RFP_TEMPERATURE_C,
+            "primary_variable_names": ["pressure"],
+        },
         "gravity": 0.0,
-        "mesh": {"filename": "rfp_grid.exo", "thickness": DZ_RFP_M},
+        "mesh": {"filename": "rfp_grid.exo"},
         "rock": {
             "types": [{
                 "name": "rfp_rock",
                 "permeability": [RFP_PERMEABILITY_M2] * 3,
                 "porosity": RFP_POROSITY,
-                "wet_conductivity": 2.0,
-                "dry_conductivity": 1.6,
                 "density": 2650.0,
-                "specific_heat": 1000.0,
                 "cells": list(range(n_cells)),
             }]
         },
@@ -131,7 +146,7 @@ def build_rfp_deck_doc() -> dict:
             "frequency": 0,
             "checkpoint": {"time": [RFP_DURATION_S]},
             "filename": "rfp.h5",
-            "fields": {"fluid": ["pressure", "temperature", "liquid_density"]},
+            "fields": {"fluid": ["pressure", "liquid_density"]},
         },
     }
 
