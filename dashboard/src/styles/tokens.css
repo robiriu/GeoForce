@@ -1,38 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  /* Surfaces — warm, paper-like */
-  --bg: #f5f4ee;
-  --bg-elevated: #faf9f5;
-  --bg-sunken: #eeece4;
-  --border-subtle: #e5e3da;
-  --border-strong: #cac6b8;
+  /* Surfaces — dark, matching ForceX AI platform */
+  --bg: #09090B;
+  --bg-elevated: #1C1C20;
+  --bg-sunken: #0F0F12;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
 
   /* Text */
-  --fg: #1f1e1c;
-  --fg-muted: #6b6862;
-  --fg-subtle: #9a958b;
+  --fg: #FAFAFA;
+  --fg-muted: #A1A1AA;
+  --fg-subtle: #71717A;
 
-  /* Accent — Clay */
-  --accent: #cc785c;
-  --accent-hover: #b8654b;
-  --accent-soft: #f2ddd2;
+  /* Accent — Amber */
+  --accent: #F59E0B;
+  --accent-hover: #D97706;
+  --accent-soft: rgba(245, 158, 11, 0.15);
 
   /* Semantic */
-  --success: #5a7a5a;
-  --warn: #b88a3e;
-  --danger: #b44a3a;
-  --info: #5f7a8c;
+  --success: #22C55E;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
 
   /* Data viz */
-  --viz-1: #cc785c;
-  --viz-2: #5f7a8c;
-  --viz-3: #7a8b5a;
-  --viz-4: #8a6b9c;
-  --viz-5: #b88a3e;
+  --viz-1: #F59E0B;
+  --viz-2: #3B82F6;
+  --viz-3: #22C55E;
+  --viz-4: #A855F7;
+  --viz-5: #EF4444;
 
-  /* Typography */
-  --font-serif: "Source Serif 4", "Copernicus", Georgia, serif;
-  --font-sans: Inter, "Styrene B", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  /* Typography — Inter to match platform */
+  --font-serif: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
 
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
@@ -57,13 +59,13 @@
   --space-16: 4rem;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-pill: 9999px;
 
-  /* Shadows (sparingly) */
-  --shadow-sm: 0 1px 2px rgba(31, 30, 28, 0.04);
-  --shadow-md: 0 4px 12px rgba(31, 30, 28, 0.06);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
 }

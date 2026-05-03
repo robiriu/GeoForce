@@ -36,11 +36,16 @@ export default function App() {
       </div>
 
       <footer
-        className="subtle"
-        style={{ fontSize: "var(--text-xs)", textAlign: "center" }}
+        style={{
+          fontSize: "var(--text-xs)",
+          textAlign: "center",
+          color: "var(--fg-subtle)",
+          borderTop: "1px solid var(--border-subtle)",
+          paddingTop: "var(--space-4)",
+        }}
       >
-        GeoForce by ForceX AI. GeoForce-Solver (implicit Darcy + energy) + v1.1
-        ReservoirCNN surrogate.
+        <span style={{ color: "var(--accent)" }}>GeoForce</span> by ForceX AI
+        &middot; GeoForce-Solver + ReservoirCNN v1.1 surrogate
       </footer>
     </div>
   );
