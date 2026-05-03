@@ -72,6 +72,11 @@ def _block_index(i: int, j: int, k: int = 0) -> int:
 
 
 def _build_mesh(out_dir: Path, mesh_filename: str) -> Path:
+    """Write the RFP mesh in ExodusII format (PETSc/Waiwera-readable).
+
+    Requires `meshio` + `netCDF4` at runtime. PyTOUGH's `write_mesh` is
+    a thin wrapper around meshio's exodus writer.
+    """
     from mulgrids import mulgrid
     geo = mulgrid().rectangular(
         xblocks=[DX_RFP_M] * NX_RFP,
@@ -80,7 +85,7 @@ def _build_mesh(out_dir: Path, mesh_filename: str) -> Path:
         atmos_type=2,
     )
     mesh_path = out_dir / mesh_filename
-    geo.write(str(mesh_path))
+    geo.write_mesh(str(mesh_path), file_format="exodus")
     return mesh_path
 
 
@@ -94,7 +99,7 @@ def build_rfp_deck_doc() -> dict:
         "thermodynamics": {"name": "iapws", "extrapolate": True},
         "eos": {"name": "we", "primary_variable_names": ["pressure", "temperature"]},
         "gravity": 0.0,
-        "mesh": {"filename": "rfp_grid.dat", "thickness": DZ_RFP_M},
+        "mesh": {"filename": "rfp_grid.exo", "thickness": DZ_RFP_M},
         "rock": {
             "types": [{
                 "name": "rfp_rock",
@@ -134,7 +139,7 @@ def build_rfp_deck_doc() -> dict:
 def build_rfp_deck(out_dir: Path) -> RfpDeck:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    mesh_path = _build_mesh(out_dir, "rfp_grid.dat")
+    mesh_path = _build_mesh(out_dir, "rfp_grid.exo")
     doc = build_rfp_deck_doc()
     json_path = out_dir / "rfp.json"
     with json_path.open("w") as f:

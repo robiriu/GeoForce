@@ -133,7 +133,7 @@ sys.path.insert(0, str(REPO_DIR))
 
 subprocess.run(
     [sys.executable, "-m", "pip", "install", "-q",
-     "pytough", "scipy", "pyyaml", "h5py"],
+     "pytough", "scipy", "pyyaml", "h5py", "meshio", "netCDF4"],
     check=True,
 )
 
