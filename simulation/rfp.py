@@ -7,10 +7,12 @@ Block B exit gate: max relative error of Waiwera cell pressures vs the
 Theis analytical solution must be <1% at sample radii within the
 Theis-window (boundary effects negligible).
 
-Geometry: a wide single-layer Cartesian mesh approximates the infinite
-2D aquifer. The producer occupies the center cell. Sample cells lie on
-the +x ray of the well center, at offsets large enough that the
-discrete Cartesian solution matches the radial one.
+Geometry: 1D axisymmetric radial mesh with logarithmically-spaced cells.
+The Cartesian-with-single-cell-sink approach we tried earlier
+under-shoots Theis by ~40-60% because the discrete Cartesian Laplacian
+is not cylindrically symmetric. Setting `mesh.radial: true` tells
+Waiwera to interpret the x-axis as radius and use annular cell volumes
+(2*pi*r*dr*dz), which matches the Theis assumption directly.
 """
 
 from __future__ import annotations
@@ -23,14 +25,14 @@ from pathlib import Path
 
 import numpy as np
 
-NX_RFP: int = 51
-NY_RFP: int = 51
-NZ_RFP: int = 1
-DX_RFP_M: float = 200.0
-DY_RFP_M: float = 200.0
+# Radial mesh: 1D axisymmetric grid for Theis benchmark. Cells are
+# log-spaced from R_INNER to R_OUTER so the well region has fine
+# resolution and the far-field still reaches into the closed-boundary
+# regime where Theis is valid.
+N_R: int = 60
+R_INNER_M: float = 0.5
+R_OUTER_M: float = 5000.0
 DZ_RFP_M: float = 100.0
-WELL_I: int = NX_RFP // 2
-WELL_J: int = NY_RFP // 2
 
 RFP_TEMPERATURE_C: float = 80.0
 RFP_PRESSURE_PA: float = 5.0e6
@@ -49,12 +51,7 @@ RFP_PERMEABILITY_M2: float = 1.0e-13
 RFP_POROSITY: float = 0.10
 RFP_MASS_RATE_KG_S: float = -10.0
 RFP_DURATION_S: float = 86400.0
-SAMPLE_RADIAL_OFFSETS: tuple[int, ...] = (3, 5, 7, 10)
-# Cap on adaptive time-step growth. The cell diffusion time
-# (DX/2)^2 / alpha ~ 1600 s sets an upper bound for backward-Euler to
-# resolve the transient pressure pulse propagation. Setting the cap to
-# ~1/3 of that gives >170 steps per 86400 s simulation.
-RFP_MAX_STEP_S: float = 500.0
+SAMPLE_RADII_TARGET_M: tuple[float, ...] = (600.0, 1000.0, 1400.0, 2000.0)
 
 
 @dataclass(frozen=True)
@@ -80,26 +77,44 @@ class RfpDeck:
     initial_pressure_Pa: float
 
 
-def _block_index(i: int, j: int, k: int = 0) -> int:
-    return (k * NY_RFP + j) * NX_RFP + i
+def _radial_cell_geometry() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return (boundaries, widths, centers) for the radial mesh in m."""
+    boundaries = np.geomspace(R_INNER_M, R_OUTER_M, N_R + 1)
+    widths = np.diff(boundaries)
+    centers = 0.5 * (boundaries[:-1] + boundaries[1:])
+    return boundaries, widths, centers
 
 
 def _build_mesh(out_dir: Path, mesh_filename: str) -> Path:
-    """Write the RFP mesh in ExodusII format (PETSc/Waiwera-readable).
+    """Write the RFP radial mesh in ExodusII format.
 
-    Requires `meshio` + `netCDF4` at runtime. PyTOUGH's `write_mesh` is
-    a thin wrapper around meshio's exodus writer.
+    1D axisymmetric column: log-spaced xblocks (radii), single y row,
+    single z layer. Waiwera sees this as cylindrical when the deck sets
+    `mesh.radial: true`. PyTOUGH's `mulgrid.write_mesh` is a thin
+    wrapper around meshio's exodus writer.
     """
     from mulgrids import mulgrid
+    _, widths, _ = _radial_cell_geometry()
     geo = mulgrid().rectangular(
-        xblocks=[DX_RFP_M] * NX_RFP,
-        yblocks=[DY_RFP_M] * NY_RFP,
-        zblocks=[DZ_RFP_M] * NZ_RFP,
+        xblocks=widths.tolist(),
+        yblocks=[1.0],
+        zblocks=[DZ_RFP_M],
         atmos_type=2,
     )
     mesh_path = out_dir / mesh_filename
     geo.write_mesh(str(mesh_path), file_format="exodus")
     return mesh_path
+
+
+def _resolve_sample_cells(centers: np.ndarray) -> tuple[tuple[float, ...], tuple[int, ...]]:
+    """Map each target radius to the nearest radial cell center."""
+    cell_ids: list[int] = []
+    radii: list[float] = []
+    for r_target in SAMPLE_RADII_TARGET_M:
+        idx = int(np.argmin(np.abs(centers - r_target)))
+        cell_ids.append(idx)
+        radii.append(float(centers[idx]))
+    return tuple(radii), tuple(cell_ids)
 
 
 def build_rfp_deck_doc() -> dict:
@@ -108,10 +123,11 @@ def build_rfp_deck_doc() -> dict:
     EOS is `w` (isothermal pure water). Theis is strictly isothermal; the
     `we` energy coupling adds apparent storativity that breaks the
     benchmark. Operating temperature is fixed at RFP_TEMPERATURE_C via
-    `eos.temperature`, primary variable is pressure only.
+    `eos.temperature`, primary variable is pressure only. The mesh is
+    1D radial — `mesh.radial: True` makes Waiwera compute cylindrical
+    cell volumes (2*pi*r*dr*dz).
     """
-    n_cells = NX_RFP * NY_RFP * NZ_RFP
-    well_cell = _block_index(WELL_I, WELL_J)
+    n_cells = N_R
     primary = [[RFP_PRESSURE_PA] for _ in range(n_cells)]
     return {
         "title": "GeoForce v2.0 - RFP / Theis benchmark",
@@ -122,7 +138,7 @@ def build_rfp_deck_doc() -> dict:
             "primary_variable_names": ["pressure"],
         },
         "gravity": 0.0,
-        "mesh": {"filename": "rfp_grid.exo"},
+        "mesh": {"filename": "rfp_grid.exo", "radial": True},
         "rock": {
             "types": [{
                 "name": "rfp_rock",
@@ -135,15 +151,15 @@ def build_rfp_deck_doc() -> dict:
         "initial": {"primary": primary, "region": 1},
         "source": [{
             "name": "P_central",
-            "cell": well_cell,
+            "cell": 0,
             "rate": RFP_MASS_RATE_KG_S,
             "component": "water",
         }],
         "time": {
             "step": {
-                "size": 10.0,
+                "size": 60.0,
                 "adapt": {"on": True, "method": "iteration"},
-                "maximum": {"size": RFP_MAX_STEP_S, "number": 100000},
+                "maximum": {"size": RFP_DURATION_S / 4.0},
             },
             "stop": RFP_DURATION_S,
         },
@@ -165,8 +181,8 @@ def build_rfp_deck(out_dir: Path) -> RfpDeck:
     with json_path.open("w") as f:
         json.dump(doc, f, indent=2)
 
-    sample_radii = tuple(d * DX_RFP_M for d in SAMPLE_RADIAL_OFFSETS)
-    sample_cells = tuple(_block_index(WELL_I + d, WELL_J) for d in SAMPLE_RADIAL_OFFSETS)
+    _, _, centers = _radial_cell_geometry()
+    sample_radii, sample_cells = _resolve_sample_cells(centers)
     return RfpDeck(
         json_path=json_path,
         mesh_path=mesh_path,
