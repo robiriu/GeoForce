@@ -66,8 +66,8 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 7. `.env` template updated: `GOOGLE_APPLICATION_CREDENTIALS` (service account JSON path), `GCP_PROJECT=forcex-studio`, `GCP_LOCATION=asia-southeast1`, `GEMINI_MODEL=gemini-2.0-flash-001` (exact model ID confirmed against Vertex catalog at runtime).
 8. Vertex service account created on `forcex-studio` with `roles/aiplatform.user`, key downloaded, gitignored.
 9. Kaggle account API token (`~/.kaggle/kaggle.json`) configured on dev box for notebook automation.
-10. HuggingFace Dataset repo `robiriu/geoforce-v2-data` created (empty, public), with placeholder README.
-11. v2-transform `dashboard/` rebuilt and deployed to a separate HF Space `robiriu/geoforce-v2-dev` (so v0.2 stays at `robiriu/geoforce`).
+10. HuggingFace Dataset repo `ForceX-AI/geoforce-v2-data` created (empty, public) under the ForceX-AI org, with placeholder README.
+11. v2-transform `dashboard/` rebuilt and deployed to a separate HF Space `ForceX-AI/geoforce-v2-dev` (so v0.2 stays at `robiriu/geoforce`).
 
 **Exit gate:**
 - `agent/api.py` running locally answers a multi-turn query end-to-end via Vertex Gemini, with a single `predict_solver` tool call dispatched correctly. Tool argument schema validated (no schema drift). SSE stream parses cleanly in the dashboard.
@@ -126,7 +126,7 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 7. `simulation/wells.py` — randomized well placement with N_prod ∈ [1, 8], N_inj ∈ [0, 4].
 8. **VPS background worker** — systemd unit `geoforce-sim-worker.service`, niced, cgroup-limited to 50% CPU so it doesn't degrade `platform.forcex-ai.com`. Pulls jobs from a SQLite job queue at `/home/ubuntu/GeoForce/simulation/queue.db`.
 9. **Kaggle burst notebook** — `notebooks/03-kaggle-sim-burst.ipynb`, parameterized by job-range, designed for the 12hr Kaggle session limit. Pushes outputs to HF Dataset on completion.
-10. **100-scenario pilot batch** — uploaded to `robiriu/geoforce-v2-data` on HF.
+10. **100-scenario pilot batch** — uploaded to `ForceX-AI/geoforce-v2-data` on HF.
 11. `notebooks/04-pilot-batch-audit.ipynb` — sanity audit: mass conservation, energy conservation, no NaNs, T bounded by [T_inj, T_max + 20°C], P within reasonable range. Reports % of pilot batch that passes audit.
 
 **Exit gate:**
@@ -150,7 +150,7 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 **Entry condition:** Phase 2 exit gate green AND pilot timing data shows 1,000 is feasible on free compute.
 
 **Deliverables:**
-1. 1,000 scenarios uploaded to `robiriu/geoforce-v2-data`, split into `train/` (800), `val/` (100), `test/` (100).
+1. 1,000 scenarios uploaded to `ForceX-AI/geoforce-v2-data`, split into `train/` (800), `val/` (100), `test/` (100).
 2. `data/scenarios_manifest.json` — stratified split metadata, hash of each scenario's inputs.
 3. `notebooks/05-campaign-progress.ipynb` — auto-updating Kaggle dashboard for queue progress.
 4. `simulation/audit.py` — re-run on full campaign; reject failed scenarios into `data/rejected/` with reason logged.
@@ -181,7 +181,7 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 4. `model/train.py` — Kaggle T4 training script. Mixed-precision. Checkpointing. Logs to W&B (free academic tier) or TensorBoard.
 5. `notebooks/06-unet3d-train.ipynb` — Kaggle T4 training notebook.
 6. `notebooks/07-unet3d-eval.ipynb` — eval on held-out test set, produces metrics table.
-7. `model/weights/geoforce_v2.pt` — final weights, uploaded to `robiriu/geoforce-v2-model` on HF.
+7. `model/weights/geoforce_v2.pt` — final weights, uploaded to `ForceX-AI/geoforce-v2-model` on HF.
 
 **Exit gate:**
 - All success criteria from §1 met on held-out test set.
@@ -247,7 +247,7 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 1. `agent/api.py` — `/predict` route updated for new I/O shape (4 output groups × 10 timesteps × 32×32×10 voxels).
 2. `dashboard/` — new components: 3D voxel viewer (three.js or deck.gl); saturation field overlay; enthalpy panel; timestep slider.
 3. `agent/runtime.py` subagent prompts updated — they now reference two-phase concepts and 3D coordinates.
-4. New HF Space `robiriu/geoforce-v2` (production), serving v2.0 model.
+4. New HF Space `ForceX-AI/geoforce-v2` (production, under ForceX-AI org), serving v2.0 model.
 5. `platform.forcex-ai.com/geoforce-v2` iframe URL repointed to new Space.
 6. v0.2 build archived to HF Space `robiriu/geoforce-v0`.
 7. Landing-page copy on `forcex-ai.com` updated to reflect v2.0 capabilities.
@@ -272,8 +272,8 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 **Entry condition:** Phase 6 exit gate green.
 
 **Deliverables:**
-1. HuggingFace model card on `robiriu/geoforce-v2-model` — full Brady benchmark numbers, Indonesian qualitative, limitations.
-2. HuggingFace Dataset card on `robiriu/geoforce-v2-data` — provenance, citations, license.
+1. HuggingFace model card on `ForceX-AI/geoforce-v2-model` — full Brady benchmark numbers, Indonesian qualitative, limitations.
+2. HuggingFace Dataset card on `ForceX-AI/geoforce-v2-data` — provenance, citations, license.
 3. Stanford Geothermal Workshop submission (next deadline TBD; archive at https://pangea.stanford.edu/ERE/db/GeoConf/).
 4. LinkedIn post — honest "from hackathon to v2.0" narrative, with public links.
 5. ITB Geothermal Engineering faculty outreach email — request review, offer to demo.

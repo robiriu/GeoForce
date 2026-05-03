@@ -54,8 +54,8 @@ All v2.0 work happens on `v2-transform`. `main` is frozen at v0.2.
 
 ### External resources
 - [ ] Configure Kaggle API token (`~/.kaggle/kaggle.json`) on dev box (user-only step)
-- [ ] Create HF Dataset repo `robiriu/geoforce-v2-data` (empty, public)
-- [ ] Create dev HF Space `robiriu/geoforce-v2-dev` (separate from production `robiriu/geoforce`)
+- [ ] Create HF Dataset repo `ForceX-AI/geoforce-v2-data` (empty, public)
+- [ ] Create dev HF Space `ForceX-AI/geoforce-v2-dev` (separate from production `robiriu/geoforce`)
 - [ ] Sign up for Kaggle + verify (user-only step)
 
 ### Phase 0 exit gate
@@ -116,7 +116,7 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 
 ### 2D. Pilot batch (100 scenarios)
 - [ ] Run 100-scenario pilot
-- [ ] Upload to `robiriu/geoforce-v2-data`
+- [ ] Upload to `ForceX-AI/geoforce-v2-data`
 - [ ] `notebooks/04-pilot-batch-audit.ipynb` — mass + energy conservation, NaN check, T bounds, P bounds
 - [ ] Document per-scenario timing on VPS + Kaggle
 
@@ -148,7 +148,7 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 - [ ] `model/train.py` — Kaggle T4 training with mixed precision, checkpointing
 - [ ] `notebooks/06-unet3d-train.ipynb`
 - [ ] `notebooks/07-unet3d-eval.ipynb` — held-out test metrics
-- [ ] `model/weights/geoforce_v2.pt` — uploaded to `robiriu/geoforce-v2-model`
+- [ ] `model/weights/geoforce_v2.pt` — uploaded to `ForceX-AI/geoforce-v2-model`
 
 ### Phase 4 exit gate (success criteria from PLAN-V2.md §1)
 - [ ] T RMSE < 5°C on held-out
@@ -180,7 +180,7 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 - [ ] `agent/api.py` `/predict` updated for new I/O shape (4 output groups × 10 timesteps × 3D voxels)
 - [ ] `dashboard/` — 3D voxel viewer (three.js / deck.gl), saturation overlay, enthalpy panel, timestep slider
 - [ ] Subagent prompts updated for two-phase + 3D vocabulary
-- [ ] New HF Space `robiriu/geoforce-v2` (production) deployed
+- [ ] New HF Space `ForceX-AI/geoforce-v2` (production, ForceX-AI org) deployed
 - [ ] `platform.forcex-ai.com/geoforce-v2` iframe URL repointed
 - [ ] v0.2 Space archived at `robiriu/geoforce-v0`
 - [ ] `forcex-ai.com` landing page copy updated
@@ -194,8 +194,8 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 
 ## Phase 7 — Publish
 
-- [ ] HF model card on `robiriu/geoforce-v2-model` with full Brady + Indonesian results
-- [ ] HF Dataset card on `robiriu/geoforce-v2-data` with provenance + citations
+- [ ] HF model card on `ForceX-AI/geoforce-v2-model` with full Brady + Indonesian results
+- [ ] HF Dataset card on `ForceX-AI/geoforce-v2-data` with provenance + citations
 - [ ] Stanford Geothermal Workshop submission
 - [ ] LinkedIn post — "from hackathon to v2.0" honest narrative
 - [ ] ITB Geothermal Engineering faculty outreach email
