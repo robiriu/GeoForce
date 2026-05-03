@@ -116,30 +116,29 @@ Phases are gated, not time-boxed. Each phase has an **entry condition**, a **del
 
 **Entry condition:** Phase 1 exit gate green.
 
+**Compute-home decision (2026-05-03):** Waiwera execution is **Kaggle-only**. The VPS is at sustained ~50% CPU load with swap exhausted under the live ForceX AI / gen21cinema container stack, so installing or running Waiwera there would risk OOM-killing production. The VPS keeps the Python orchestration code (deck templating, queue, audit) which never invokes Waiwera. Eliminates the systemd-worker deliverable.
+
 **Deliverables:**
-1. **Waiwera install on VPS** — built from source, runs TOUGH2 reference benchmark `RFP` (Radial Flow Problem) and matches published solution within 1%.
-2. **Waiwera install on Kaggle** — Dockerfile or conda env that builds Waiwera inside a Kaggle notebook session in < 30 min.
-3. **PyTOUGH installed** on both — for input deck templating and output reading.
-4. `simulation/campaign.py` — generates input decks from `scenarios.yaml v2`, runs Waiwera, parses outputs into `(inputs, outputs)` HDF5 chunks.
-5. `simulation/scenarios_v2.yaml` — LHS-sampled parameter combinations covering the 12 dimensions in `initial/PLAN.md` §2B.
-6. `simulation/grid.py` — 32×32×10 3D grid with caprock/reservoir/basement layering, hydrostatic + geothermal initial conditions.
-7. `simulation/wells.py` — randomized well placement with N_prod ∈ [1, 8], N_inj ∈ [0, 4].
-8. **VPS background worker** — systemd unit `geoforce-sim-worker.service`, niced, cgroup-limited to 50% CPU so it doesn't degrade `platform.forcex-ai.com`. Pulls jobs from a SQLite job queue at `/home/ubuntu/GeoForce/simulation/queue.db`.
-9. **Kaggle burst notebook** — `notebooks/03-kaggle-sim-burst.ipynb`, parameterized by job-range, designed for the 12hr Kaggle session limit. Pushes outputs to HF Dataset on completion.
-10. **100-scenario pilot batch** — uploaded to `ForceX-AI/geoforce-v2-data` on HF.
-11. `notebooks/04-pilot-batch-audit.ipynb` — sanity audit: mass conservation, energy conservation, no NaNs, T bounded by [T_inj, T_max + 20°C], P within reasonable range. Reports % of pilot batch that passes audit.
+1. **Waiwera install on Kaggle** — `notebooks/03-kaggle-sim-burst.ipynb` pulls the official Waiwera Docker image (or builds via conda) inside a Kaggle CPU session in < 15 min. Runs the TOUGH2 `RFP` (Radial Flow Problem) analytical benchmark and matches published solution within 1%. ✓ Block A done: `simulation/scenarios_v2.yaml`, `grid.py`, `wells.py`, `sampling.py` (commit ed6892b).
+2. **PyTOUGH installed on the VPS dev env** — for deck-templating round-trip tests that don't need Waiwera itself.
+3. `simulation/deck.py` — generates Waiwera input decks from a `Scenario` (sampling.py) + `WellSet` (wells.py) + `GridSpec` (grid.py). Round-trip tested via PyTOUGH.
+4. `simulation/queue.py` — SQLite job queue at `simulation/queue.db`. Producer side runs on the VPS; the Kaggle notebook is the consumer (pulls a job range, runs Waiwera, pushes outputs).
+5. `simulation/campaign.py` — driver: pull job from queue → render deck → invoke Waiwera (only when running on Kaggle) → parse outputs → write HDF5 chunk.
+6. **Kaggle burst notebook** — published as `robiriu/forcex-ai-geoforce-sim-burst` (Kaggle has no real orgs; we mark provenance via the `forcex-ai-` slug prefix and the `forcex-ai` API-token name). Parameterized by job-range, designed for the 12-hr session cap.
+7. **100-scenario pilot batch** — uploaded to `ForceX-AI/geoforce-v2-data` on HF from inside the Kaggle notebook on completion.
+8. `notebooks/04-pilot-batch-audit.ipynb` — sanity audit (runs on VPS or anywhere): mass conservation, energy conservation, no NaNs, T bounded by [T_inj, T_max + 20 °C], P within reasonable range. Reports % of pilot batch that passes audit.
 
 **Exit gate:**
-- Waiwera RFP benchmark on VPS passes (< 1% error vs. analytical).
+- Waiwera RFP benchmark passes on Kaggle (< 1 % error vs. analytical).
 - Pilot batch audit: ≥ 90 of 100 scenarios pass all sanity checks.
-- Per-scenario wall-clock timing measured on both VPS and Kaggle. Total cost projection for 1,000 scenarios estimated.
+- Per-scenario wall-clock timing measured on Kaggle. Total cost projection for 1,000 scenarios fits within the Kaggle CPU weekly quota under 5-way concurrency.
 
-**Compute home:** VPS (continuous worker) + Kaggle (5 parallel burst sessions).
+**Compute home:** VPS (deck templating, queue authoring, audit notebook). Kaggle (Waiwera execution + 5-way parallel pilot run).
 
 **Risks:**
-- Waiwera build fails on VPS due to PETSc/MPI dependency hell. **Mitigation:** fall back to a Docker image; both PyTOUGH and Waiwera have community Dockerfiles.
-- Kaggle's 12hr session is too short for some scenarios. **Mitigation:** chunk by scenario count, not time; checkpoint output per scenario.
-- VPS worker degrades `platform.forcex-ai.com`. **Mitigation:** cgroup CPU/memory limits; scheduled to run only off-peak (cron + systemd timer).
+- Kaggle's 12-hr session cap is too short for some scenarios. **Mitigation:** chunk by scenario count, not time; checkpoint output per scenario; resumable by job-range.
+- Iteration friction (every Waiwera deck change requires a Kaggle round-trip). **Mitigation:** keep `simulation/deck.py` purely declarative + unit-tested via PyTOUGH locally; Kaggle only runs already-validated decks.
+- Waiwera Docker image fails to pull / install on Kaggle. **Mitigation:** fall back to community conda recipe inside the notebook; if both fail, the project pivots to a TOUGH2-EOS1 mock simulator (already in the v0.2 codebase) and adjusts the Phase 4 model to that I/O — flagged as a hard pivot, not a silent change.
 
 ---
 

@@ -18,7 +18,7 @@ All v2.0 work happens on `v2-transform`. `main` is frozen at v0.2.
 |---|---|---|---|---|---|
 | 0 | Foundation | **Complete** | 2026-05-03 | 2026-05-03 | Vertex Gemini end-to-end with tool call + SSE |
 | 1 | Real Data | **Complete** | 2026-05-03 | 2026-05-03 | Brady ≥95/101 loadable + ≥5 Indonesian fields characterized |
-| 2 | Simulator + Pilot Campaign | Not Started | — | — | Waiwera RFP green; 90/100 pilot pass |
+| 2 | Simulator + Pilot Campaign | **In Progress** | 2026-05-03 | — | Waiwera RFP green on Kaggle; 90/100 pilot pass |
 | 3 | Full Simulation Campaign | Not Started | — | — | ≥900 valid scenarios, stratified split |
 | 4 | 3D U-Net Architecture and Training | Not Started | — | — | All §1 success criteria met on held-out |
 | 5 | Validation | Not Started | — | — | Brady benchmark match; physics audit <1% |
@@ -96,34 +96,37 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 
 ## Phase 2 — Simulator Setup + Pilot Campaign
 
-### 2A. Waiwera install
-- [ ] Build Waiwera from source on VPS (PETSc + MPI)
-- [ ] Run TOUGH2 RFP benchmark — match within 1%
-- [ ] Build Waiwera in Kaggle notebook (Dockerfile or conda env, < 30 min)
-- [ ] Install PyTOUGH in both environments
+**Compute-home decision (2026-05-03):** Waiwera execution is **Kaggle-only**. VPS keeps the orchestration code (deck templating, queue, audit) but never runs Waiwera. systemd-worker deliverable dropped. See PLAN-V2 §Phase 2 for rationale (VPS swap exhausted under live container stack).
 
-### 2B. Simulation pipeline
-- [ ] `simulation/grid.py` — 32×32×10 grid, caprock/reservoir/basement layering
-- [ ] `simulation/wells.py` — randomized well placement
-- [ ] `simulation/scenarios_v2.yaml` — LHS-sampled parameter combinations (12 dimensions)
-- [ ] `simulation/campaign.py` — generate decks, run Waiwera, parse outputs to HDF5
-- [ ] `simulation/queue.db` — SQLite job queue
+### 2A. Block A — Simulation scaffolding (commit ed6892b)
+- [x] `simulation/grid.py` — 32×32×10 grid, caprock/reservoir/basement layering, hydrostatic + geothermal IC
+- [x] `simulation/wells.py` — randomized well placement with edge margin + spacing constraints
+- [x] `simulation/scenarios_v2.yaml` — 12-D LHS spec (Indonesian-field bounds)
+- [x] `simulation/sampling.py` — scipy.stats.qmc Latin Hypercube → Scenario dataclasses
+- [x] 20 unit tests pass (`tests/test_simulation_{grid,wells,sampling}.py`)
 
-### 2C. VPS worker + Kaggle burst
-- [ ] systemd unit `geoforce-sim-worker.service` (niced, cgroup CPU 50%)
-- [ ] `notebooks/03-kaggle-sim-burst.ipynb` — chunked, designed for 12hr session
-- [ ] HF Dataset push automation on completion
+### 2B. Block C — Pipeline glue (VPS-side, no Waiwera install needed)
+- [ ] Install PyTOUGH in `.venv` (deck templating + output parsing only)
+- [ ] `simulation/deck.py` — render Waiwera input deck from (Scenario, WellSet, GridSpec); round-trip test
+- [ ] `simulation/queue.py` + `simulation/queue.db` (SQLite) — job-range producer; consumer interface
+- [ ] `simulation/campaign.py` — driver that ties it together (Waiwera invocation gated on `WAIWERA_AVAILABLE` env so it skips on VPS)
 
-### 2D. Pilot batch (100 scenarios)
-- [ ] Run 100-scenario pilot
+### 2C. Block B — Kaggle Waiwera execution
+- [ ] `notebooks/03-kaggle-sim-burst.ipynb` — pulls Waiwera Docker image (or conda), runs RFP benchmark, then a job-range from the SQLite queue
+- [ ] Published as `robiriu/forcex-ai-geoforce-sim-burst` on Kaggle (no real orgs on Kaggle; `forcex-ai-` prefix marks provenance)
+- [ ] HF Dataset push automation at end of session → `ForceX-AI/geoforce-v2-data`
+- [ ] RFP benchmark passes within 1% of analytical (Block B exit)
+
+### 2D. Block D — Pilot batch (100 scenarios)
+- [ ] Run 100-scenario pilot via 5-way concurrent Kaggle sessions
 - [ ] Upload to `ForceX-AI/geoforce-v2-data`
 - [ ] `notebooks/04-pilot-batch-audit.ipynb` — mass + energy conservation, NaN check, T bounds, P bounds
-- [ ] Document per-scenario timing on VPS + Kaggle
+- [ ] Document per-scenario timing on Kaggle; project 1,000-scenario weekly-quota fit
 
 ### Phase 2 exit gate
-- [ ] Waiwera RFP benchmark passes (< 1% vs. analytical)
+- [ ] Waiwera RFP benchmark passes on Kaggle (< 1% vs. analytical)
 - [ ] Pilot audit: ≥ 90/100 scenarios pass
-- [ ] 1,000-scenario projection feasible on free compute
+- [ ] 1,000-scenario projection fits within Kaggle CPU weekly quota under 5-way concurrency
 
 ---
 
@@ -219,6 +222,8 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 | 2026-05-03 | Phase 0 uses single root LlmAgent with 4 tools (not 8 live subagents) to conserve GenAI App Builder credit; multi-agent decomposition deferred to Phase 6 | user (cost concern) |
 | 2026-05-03 | Brady OSR is well-time-series, not 2D field. v1.1-on-Brady baseline notebook **dropped**; Brady moves to Phase 5 validation only (NREL Duplyakin 2022 numbers become the bar). Option (a) per assistant flag. | user |
 | 2026-05-03 | Phase 1 §1B Utah FORGE **deferred to Phase 5** — different physics regime (EGS in granitic basement vs Indonesian volcanic-arc); not in Phase 1 exit gate; revisit only if EGS comparison adds technical-report value | assistant recommendation, awaiting confirmation |
+| 2026-05-03 | Phase 2 Waiwera execution is **Kaggle-only**; VPS keeps orchestration code only. systemd-worker deliverable dropped. Reason: VPS at sustained ~50% CPU + swap exhausted under live ForceX-AI/gen21cinema container stack — installing Waiwera there would risk OOM-killing production. | user (after assistant hardware report) |
+| 2026-05-03 | Kaggle artifacts use `robiriu/forcex-ai-*` slug prefix (Kaggle has no first-class orgs). API token named `forcex-ai` already provisioned. HF still uses true `ForceX-AI` org for v2.0 dataset/model/Spaces. | user |
 
 ---
 
