@@ -39,8 +39,8 @@ export default function App() {
         className="subtle"
         style={{ fontSize: "var(--text-xs)", textAlign: "center" }}
       >
-        Built for the Opus 4.7 hackathon. GeoForce-Solver (implicit Darcy +
-        energy) + v1.1 ReservoirCNN surrogate.
+        GeoForce by ForceX AI. GeoForce-Solver (implicit Darcy + energy) + v1.1
+        ReservoirCNN surrogate.
       </footer>
     </div>
   );

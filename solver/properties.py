@@ -1,6 +1,6 @@
 """IAPWS-IF97 liquid water properties for GeoForce-Solver.
 
-For the Day-1 Theis benchmark we only need *reference-state* properties
+For the Theis benchmark we only need *reference-state* properties
 (constant density and viscosity), which matches the linearized Boussinesq
 assumption in the pressure equation.
 
@@ -8,7 +8,7 @@ The full IAPWS-IF97 wrapper is available for the coupled T-P solve where
 density and viscosity vary with temperature.
 
 Single-phase liquid only. If the user asks for vapor or two-phase, return
-NaN — the scope rules forbid that physics in this hackathon build.
+NaN — the scope rules forbid that physics in this build.
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 ---
-description: Run the GeoForce-Solver analytical benchmark suite (Theis pressure + 1D conduction temperature). The Day 1 GO/NO-GO checkpoint depends on this.
+description: Run the GeoForce-Solver analytical benchmark suite (Theis pressure + 1D conduction temperature).
 ---
 
 # /validate-solver
@@ -15,7 +15,7 @@ Run the full analytical-benchmark validation for GeoForce-Solver.
    - Max relative error vs analytical
    - Wall-clock runtime
 4. If either fails: invoke the `solver-engineer` subagent with the failure details and ask for a diagnosis. Do **not** silently modify tests to pass.
-5. Update `PROGRESS.md` with the result under the Day 1 checkpoint.
+5. Update `PROGRESS.md` with the result.
 
 ## Pass criteria (both required)
 
@@ -24,8 +24,8 @@ Run the full analytical-benchmark validation for GeoForce-Solver.
 
 ## On failure
 
-This is a blocking event. Per HACKATHON-PLAN.md §7:
+This is a blocking event:
 - First failure → attempt one targeted fix (smaller Δt, finer grid, BC check)
-- Second failure → invoke the Day 1 fallback: drop `solver/` from critical path; the project continues surrogate-only
+- Second failure → drop `solver/` from critical path; the project continues surrogate-only
 
 Report the fallback trigger explicitly to the user.

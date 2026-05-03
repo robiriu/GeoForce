@@ -49,7 +49,7 @@ Thumbs.db
 *.swp
 *~
 
-# Hackathon: weights backup copies (keep the real one only)
+# Weights backup copies (keep the real one only)
 surrogate/weights/*.pt.bak
 surrogate/weights/*.pt.old
 

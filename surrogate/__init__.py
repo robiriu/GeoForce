@@ -1,4 +1,4 @@
-"""GeoForce v1.1 CNN surrogate — ported from ForceX-AI for GeoForce-CCHackathon."""
+"""GeoForce v1.1 CNN surrogate — ported from ForceX-AI."""
 
 from __future__ import annotations
 

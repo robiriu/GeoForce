@@ -12,13 +12,11 @@ short_description: Agent-orchestrated geothermal solver + CNN surrogate.
 
 # GeoForce
 
-> **Opus 4.7 agents orchestrate two engines — a newly-built open-source
+> **AI agents orchestrate two engines — a newly-built open-source
 > geothermal solver (GeoForce-Solver) and a deployed physics-informed CNN
 > surrogate — to answer real Indonesian geothermal engineering questions.**
 
-Built for the **"Built with Opus 4.7" Claude Code Hackathon** (Cerebral
-Valley × Anthropic, 2026-04-21 → 2026-04-27) by
-[Robi Dany Riupassa](https://github.com/robidanyriupassa) (ForceX AI).
+by [Robi Dany Riupassa](https://github.com/robidanyriupassa) (ForceX AI).
 
 ---
 
@@ -41,7 +39,7 @@ two orders of magnitude of compute.
 
 ```
                  +--------------------------+
- user query ---> |    Opus 4.7 orchestrator |  (claude-agent-sdk)
+ user query ---> |    AI orchestrator        |  (claude-agent-sdk)
                  +-----------+--------------+
                              |
           +------------------+------------------+
@@ -157,7 +155,7 @@ port — no reverse proxy needed.
 geothermal temperatures `25–350 °C`, pressures `0.1–30 MPa`, per-cell
 injector/producer sources, Monte-Carlo + OAT sensitivity.
 
-**Out of scope (hackathon discipline, documented honestly):**
+**Out of scope (current version):**
 
 - Two-phase flow / flashing (steam). The solver does not and will not
   model this; `/query` refuses gracefully.
@@ -166,17 +164,13 @@ injector/producer sources, Monte-Carlo + OAT sensitivity.
 - CO₂ or brine chemistry.
 - Retraining the CNN surrogate — v1.1 weights are frozen.
 
-If the Day-1-evening analytical-benchmark gate had failed (Theis /
-1-D conduction > 5 % relative error) we would have dropped the solver
-and shipped surrogate-only. It didn't; both engines ship.
-
 ## Credits
 
 - Solver numerics inspired by the TOUGH family (LBNL) — single-phase
   subset only. See `.claude/skills/tough-reference/`.
 - Magma colormap: matplotlib (Apache-2.0), 12-stop approximation.
 - Source Serif 4, Inter, JetBrains Mono via Google Fonts.
-- Built with **Claude Code** and **Opus 4.7**.
+- Built with **Claude Code** by **ForceX AI**.
 
 ## License
 

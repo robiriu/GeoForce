@@ -103,7 +103,7 @@ T_z = conduction_1d(
 
 ## Acceptance Thresholds
 
-Both tests must pass for the Day 1 GO/NO-GO checkpoint (see HACKATHON-PLAN.md §7). If either fails:
+Both tests must pass before solver output is trusted. If either fails:
 - Investigate once: try smaller timestep, finer grid, check boundary conditions
 - If second attempt fails: **drop solver from critical path**, fall back to surrogate-only
 

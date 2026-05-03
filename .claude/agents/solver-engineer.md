@@ -49,7 +49,7 @@ If either test fails, STOP. Do not return numerical results. Return a failure re
 - Suspected cause (convergence? discretization? boundary condition?)
 - Recommendation to the planner
 
-## Development Order (Day 1 afternoon)
+## Recommended Development Order
 
 Build in this order to maximize chance of passing benchmarks:
 

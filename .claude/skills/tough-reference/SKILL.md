@@ -1,11 +1,11 @@
 ---
 name: tough-reference
-description: Deep reference knowledge of the TOUGH family of geothermal reservoir simulators (LBNL) — architecture, governing equations, EOS modules, numerics, licensing. Use when designing GeoForce-Solver, explaining solver choices to judges, or deciding what to borrow vs. simplify.
+description: Deep reference knowledge of the TOUGH family of geothermal reservoir simulators (LBNL) — architecture, governing equations, EOS modules, numerics, licensing. Use when designing GeoForce-Solver, explaining solver choices, or deciding what to borrow vs. simplify.
 ---
 
 # tough-reference — TOUGH Family Deep Knowledge
 
-This skill is the **reference spine** for how GeoForce-Solver relates to the state-of-the-art TOUGH ecosystem. It exists so that the `solver-engineer` subagent (and anyone explaining the project to judges) can speak precisely about what TOUGH does, what GeoForce-Solver deliberately simplifies, and why.
+This skill is the **reference spine** for how GeoForce-Solver relates to the state-of-the-art TOUGH ecosystem. It exists so that the `solver-engineer` subagent can speak precisely about what TOUGH does, what GeoForce-Solver deliberately simplifies, and why.
 
 Source: https://tough.lbl.gov/documentation/tough-manuals/ (LBNL, accessed 2026-04-23)
 
@@ -13,12 +13,12 @@ Source: https://tough.lbl.gov/documentation/tough-manuals/ (LBNL, accessed 2026-
 
 ## 1. Why this skill exists
 
-GeoForce-Solver is **not** a TOUGH clone. It is a minimal, honest, open-source single-phase geothermal solver built live by an agent team in 2 days. To make that framing credible to expert judges, we must show:
+GeoForce-Solver is **not** a TOUGH clone. It is a minimal, honest, open-source single-phase geothermal solver. To make that framing credible, we must show:
 
 1. We know what TOUGH actually is (architecture, equations, numerics).
 2. We chose single-phase on purpose — not out of ignorance.
 3. Our borrowings (IFD-style conservation, implicit backward-Euler, Newton-Raphson) are deliberate and attributed.
-4. Our simplifications (2D structured grid, no phase transitions, no wellbore coupling) are scoped to the 48-hour window.
+4. Our simplifications (2D structured grid, no phase transitions, no wellbore coupling) are deliberate scope choices.
 
 When in doubt about a solver design decision, invoke this skill and cite the relevant TOUGH concept.
 
@@ -138,7 +138,7 @@ TOUGH well models (from simple to complex):
 3. **Deliverability (productivity index)** — \(q = PI \cdot (P_{cell} - P_{wf})\) with a PI computed from permeability and skin.
 4. **T2Well (coupled wellbore)** — full drift-flux two-phase wellbore ODE coupled to reservoir.
 
-**GeoForce-Solver:** specified mass rate (level 1) for Day 1; optional Peaceman PI (level 2/3) if time permits.
+**GeoForce-Solver:** specified mass rate (level 1); optional Peaceman PI (level 2/3) as a future extension.
 
 ---
 
@@ -152,7 +152,7 @@ TOUGH's credibility comes from decades of V&V against:
 - **Elder problem** — free convection.
 - **Code-to-code:** Stanford's code-comparison studies (1980s geothermal, 2000s CO2 sequestration).
 
-**GeoForce-Solver adopts Theis + 1D conduction as Day 1 acceptance gates.** This is 5% of TOUGH's V&V coverage but it catches ~100% of catastrophic solver bugs (wrong sign, missing buoyancy, broken time-stepping).
+**GeoForce-Solver adopts Theis + 1D conduction as acceptance gates.** This is 5% of TOUGH's V&V coverage but it catches ~100% of catastrophic solver bugs (wrong sign, missing buoyancy, broken time-stepping).
 
 See `analytical-benchmarks` skill for implementations.
 
@@ -162,9 +162,9 @@ See `analytical-benchmarks` skill for implementations.
 
 - TOUGH3: licensed by LBNL. Source available to licensees; re-distribution forbidden. Academic license ~$400, commercial ~$4000+.
 - TOUGH2 v2.1: licensed similarly (LBNL / via US DOE).
-- **No open-source TOUGH.** Waiwera (U. Auckland) is a standalone open-source geothermal simulator but has its own build system and is out-of-scope for a 2-day hackathon.
+- **No open-source TOUGH.** Waiwera (U. Auckland) is a standalone open-source geothermal simulator but has its own build system.
 
-**Implication for our narrative:** "Opus 4.7 agents built an open-source geothermal solver in 48 hours that a grad student could legally hack on without waiting for a license email" — this is a real, defensible contribution, not a toy.
+**Implication:** an open-source geothermal solver that a grad student can legally hack on without waiting for a license email — this is a real, defensible contribution, not a toy.
 
 ---
 
@@ -177,7 +177,7 @@ See `analytical-benchmarks` skill for implementations.
 
 ### Tier 2 — useful context, not needed to build
 4. ECO2N / ECO2M User's Guide — CO2 sequestration; we won't touch it.
-5. T2Well User's Guide — wellbore coupling; out-of-scope Day 1.
+5. T2Well User's Guide — wellbore coupling; out-of-scope for current version.
 6. EWASG User's Guide — high-salinity geothermal; relevant to Indonesian fields but out-of-scope.
 7. iTOUGH2 User's Guide — parameter estimation; overlaps with our UQ story but we use MC not inversion.
 
@@ -215,6 +215,6 @@ Full list (~50 manuals) at https://tough.lbl.gov/documentation/tough-manuals/ �
 
 ---
 
-## 11. One-paragraph pitch (for judges)
+## 11. One-paragraph summary
 
-> GeoForce-Solver is a single-phase geothermal reservoir solver written from scratch in 48 hours by an Opus 4.7 agent team. It adopts the conservative finite-volume form, fully-implicit backward-Euler time integration, and Newton-Raphson nonlinear iteration that have made LBNL's TOUGH family the industry standard since 1985. It deliberately simplifies — single-phase liquid water (IAPWS-IF97 Region 1), 2D structured grid, specified-rate wells — so that the 48-hour scope is honest. Acceptance gates are the Theis pressure drawdown and 1D conduction analytical solutions: two benchmarks from TOUGH's own V&V suite. The result is an MIT-licensed, pip-installable solver that a graduate student can hack on today, paired with a deployed physics-informed CNN surrogate (v1.1, R²>0.99) for millisecond inference. The multi-agent team — planner, geologist, solver-engineer, surrogate-operator, uq-specialist, visualizer, reviewer, ui-engineer — shows what Opus 4.7 can build when agents are managed as first-class, composable, specialized citizens.
+> GeoForce-Solver is a single-phase geothermal reservoir solver built by ForceX AI. It adopts the conservative finite-volume form, fully-implicit backward-Euler time integration, and Newton-Raphson nonlinear iteration that have made LBNL's TOUGH family the industry standard since 1985. It deliberately simplifies — single-phase liquid water (IAPWS-IF97 Region 1), 2D structured grid, specified-rate wells — keeping the scope honest and extensible. Acceptance gates are the Theis pressure drawdown and 1D conduction analytical solutions: two benchmarks from TOUGH's own V&V suite. The result is an MIT-licensed, pip-installable solver that a graduate student can hack on today, paired with a deployed physics-informed CNN surrogate (v1.1, R²>0.99) for millisecond inference.

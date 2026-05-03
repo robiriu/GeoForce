@@ -1,12 +1,12 @@
 # AGENTS.md — Multi-Agent Architecture
 
-This document is the **visible map** of the agent system. It is intentionally verbose for two audiences: (1) future-us navigating the repo mid-hackathon, (2) hackathon judges who want to understand how agents are managed.
+This document is the **visible map** of the agent system.
 
 ---
 
 ## Mental Model
 
-A user asks a natural-language engineering question. A team of Opus 4.7 subagents collaborates to answer it, with **parallel execution where independent** and **sequential pipelining where dependent**. Every query produces:
+A user asks a natural-language engineering question. A team of AI subagents collaborates to answer it, with **parallel execution where independent** and **sequential pipelining where dependent**. Every query produces:
 
 1. A structured numerical answer (temperature, pressure, MW, well locations)
 2. Uncertainty quantification (P10/P50/P90 where relevant)
@@ -208,9 +208,9 @@ The SDK creates a `ClaudeAgentClient` pinned to `claude-opus-4-7`, loads subagen
 
 ---
 
-## Managed Agents (prize fit)
+## Architecture Principles
 
-This architecture directly maps to the "**Best use of Claude Managed Agents**" prize criterion:
+The composable agent pattern underlying this system:
 
 - **Agents are managed as first-class files** under `.claude/agents/`
 - **Orchestration is explicit**, not emergent — the planner decomposes; the DAG is visible
@@ -218,21 +218,21 @@ This architecture directly maps to the "**Best use of Claude Managed Agents**" p
 - **Composability** — swapping agents (e.g., solver-engineer → 3D-solver-engineer) is a one-file change
 - **Parallel execution** is real (multiple `Agent` tool calls in one message), not simulated
 
-Judges can inspect any single `.md` file to understand what that agent does, what tools it has, and how it's invoked.
+Each `.md` file under `.claude/agents/` fully describes what that agent does, what tools it has, and how it's invoked.
 
 ---
 
-## UI Agent Flow (Day 2)
+## UI Agent Flow
 
 The ui-engineer runs **outside** the per-query pipeline. It builds and maintains the presentation surfaces, not individual query answers. Interaction model:
 
 ```
-Day 2 morning:
+Build phase:
   ui-engineer → scaffolds dashboard/ (React+Vite) and app/ (Streamlit)
   ui-engineer → applies claude-design-system tokens
   ui-engineer → wires agent/api.py FastAPI + SSE stream
 
-Day 2 afternoon:
+Runtime:
   User in dashboard → types query → POST /query → SSE streams:
     ├── planner events (DAG decomposition)
     ├── specialist events (geologist, solver, surrogate, uq, visualizer)

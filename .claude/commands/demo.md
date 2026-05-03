@@ -1,5 +1,5 @@
 ---
-description: Run the three hand-tuned hackathon demo scenarios (Q1, Q2, Q3) end-to-end through the agent pipeline. Used for demo video recording and final sanity check before submission.
+description: Run the three hand-tuned demo scenarios (Q1, Q2, Q3) end-to-end through the agent pipeline. Used for demo recording and sanity checking.
 ---
 
 # /demo

@@ -1,27 +1,23 @@
 # JOURNAL.md — Build Process Documentation
 
-Complete narrative of how GeoForce-CCHackathon was conceived, scoped, and scaffolded. This document explains the **why** behind every decision. It is separate from:
+Complete narrative of how GeoForce was conceived, scoped, and built. This document explains the **why** behind every decision. It is separate from:
 
-- **`HACKATHON-PLAN.md`** — the forward-looking contract (what we're going to build)
+- **`PROJECT-PLAN.md`** — the forward-looking contract (what we're going to build)
 - **`PROGRESS.md`** — live task state with checkboxes (where we are right now)
 - **`CLAUDE.md`** + **`AGENTS.md`** — project instructions and runtime architecture (how Claude Code operates in this repo)
 
-If you want to know the current state, read `PROGRESS.md`. If you want to know the plan, read `HACKATHON-PLAN.md`. If you want to know why we made each choice, read this file.
+If you want to know the current state, read `PROGRESS.md`. If you want to know the plan, read `PROJECT-PLAN.md`. If you want to know why we made each choice, read this file.
 
 ---
 
 ## 1. Overview
 
-**GeoForce-CCHackathon** is Robi Dany Riupassa's submission for "**Built with Opus 4.7 — Claude Code Hackathon**" (Cerebral Valley + Anthropic, 2026-04-21 to 2026-04-27). Personal time budget: 2 days starting 2026-04-23.
-
-**Prize targets:**
-1. **Primary:** 1st place — $50K API credits
-2. **Secondary (safety net):** "Best use of Claude Managed Agents" — $5K API credits
+**GeoForce** is Robi Dany Riupassa's ForceX AI geothermal engineering platform. It uses Opus 4.7 agents to orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate (v1.1) — to answer real Indonesian geothermal engineering questions.
 
 **One-line thesis:**
-> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate (v1.1) — to answer real Indonesian geothermal engineering questions in 48 hours.
+> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate (v1.1) — to answer real Indonesian geothermal engineering questions.
 
-The project deliberately showcases two things at once:
+The project deliberately delivers two things at once:
 1. A substantive engineering artifact (MIT-licensed geothermal solver + deployed surrogate).
 2. A disciplined multi-agent architecture (8 specialized Opus 4.7 subagents with explicit parallel/sequential DAG).
 
@@ -31,12 +27,12 @@ The project deliberately showcases two things at once:
 
 ### 2.1 ForceX AI background
 
-Robi is the founder of **ForceX AI** (Bandung, Indonesia; ITB petroleum engineering / SHARC lab). Prior to the hackathon, the `ForceX-AI` repo contained a full product called **GeoForce**: an AI-assisted geothermal reservoir analysis platform. Two generations of work exist:
+Robi is the founder of **ForceX AI** (Bandung, Indonesia; ITB petroleum engineering / SHARC lab). The `ForceX-AI` repo contains a full product called **GeoForce**: an AI-assisted geothermal reservoir analysis platform. Two generations of work exist:
 
 - `products/geoforce/` (v1) — first-generation surrogate + notebooks + validation
 - `products/geoforce/v2-real-transform/` — **v2 re-planning** that acknowledged v1 was a smoke-and-mirrors demo and defined the path to a real, credible engineering tool
 
-The v2 planning docs (`PLAN.md`, `PROGRESS.md`, `REAL-ENGINEERING-QUESTIONS.md`) became the seed for this hackathon project and live at `initial/` (frozen, read-only).
+The v2 planning docs (`PLAN.md`, `PROGRESS.md`, `REAL-ENGINEERING-QUESTIONS.md`) became the seed for this project and live at `initial/` (frozen, read-only).
 
 ### 2.2 What already exists (leveraged, not rebuilt)
 
@@ -47,37 +43,11 @@ From the v1/v2 GeoForce work:
   - 3.2 ms inference
   - 6-channel input (log_k, porosity, depth, well mask, base_T, base_P) on 32×32 grid
   - 10-channel output (T and P at 5 timesteps)
-  - **Frozen.** Never retrain during the hackathon.
+  - **Frozen.** Never retrain.
 
-### 2.3 Why a hackathon project (not just continuing ForceX AI)
+### 2.3 Scope rationale: this repo vs. continuing ForceX AI
 
-The hackathon forces a **crisp, defensible 48-hour deliverable**. Continuing ForceX AI work would bleed into v2's broader multi-quarter scope. Framing this as a separate repo (`GeoForce-CCHackathon`) keeps the hackathon submission self-contained and judge-friendly.
-
----
-
-## 3. Hackathon Research Synthesis
-
-Before writing a single line of code, I researched the hackathon itself: Cerebral Valley's event page, rules, Discord, and prior winners of the Opus 4.6 edition. Findings that shaped the plan:
-
-### 3.1 What wins
-
-Past winners (e.g., CrossBeam from the Opus 4.6 edition) shared three traits:
-1. **Real engineering substance**, not just a demo skin.
-2. **Visible multi-agent orchestration** with parallel execution.
-3. **Polished demo surface** (video + deployed app + clean README).
-
-### 3.2 Prize fit
-
-- **1st place ($50K)** demands technical weight *and* a winning demo.
-- **Managed Agents ($5K)** is awarded for clean agent architecture — this is our fallback if the solver doesn't converge in time.
-
-Stacking both targets means: build an architecture that *already* satisfies the Managed Agents criterion, then add the solver narrative on top to reach for 1st.
-
-### 3.3 Constraints found in the rules
-
-- Must be built primarily with Claude Code + Opus 4.7 during the hackathon window.
-- Must be submitted via the Cerebral Valley portal before the deadline.
-- Projects that only use Opus 4.7 as a wrapper over existing code are explicitly discouraged.
+This repo (`GeoForce`) keeps the deliverable self-contained with a crisp scope boundary. Continuing work directly in ForceX AI would bleed into v2's broader multi-quarter scope. The separation keeps the engineering work focused and the codebase independently deployable.
 
 ---
 
@@ -90,26 +60,26 @@ The project's framing changed three times before settling. Each change is record
 
 **What it was:** take the existing v1.1 CNN, wrap it in Streamlit, let Claude answer questions by calling it.
 
-**Why rejected:** thin. A CNN + a chat UI is a weekend tutorial, not a 1st-place hackathon entry. It doesn't demonstrate Opus 4.7's unique capabilities (multi-agent orchestration, parallel task dispatch, live code authoring).
+**Why rejected:** thin. A CNN + a chat UI is a weekend tutorial. It doesn't demonstrate Opus 4.7's unique capabilities (multi-agent orchestration, parallel task dispatch, live code authoring), and the product value is too limited for real engineering use.
 
 ### 4.2 v1 — "Dual-tool: newly-built solver + deployed surrogate"
 **Date:** 2026-04-23 midday
 
-**What it is:** Opus 4.7 agents build a minimal, open-source geothermal solver (`GeoForce-Solver`) *during the hackathon itself*, paired with the already-deployed v1.1 CNN surrogate. The planner agent chooses which engine to call per query.
+**What it is:** Opus 4.7 agents build a minimal, open-source geothermal solver (`GeoForce-Solver`), paired with the already-deployed v1.1 CNN surrogate. The planner agent chooses which engine to call per query.
 
 **Why it won out:**
-- **Engineering substance** — writing a reservoir solver from scratch in 48h is a real feat and directly inspired by TOUGH's architecture.
+- **Engineering substance** — writing a reservoir solver from scratch is a real feat and directly inspired by TOUGH's architecture.
 - **Narrative** — "agents built a solver that a grad student can legally use today" sidesteps TOUGH's proprietary licensing in a principled way.
 - **Demonstrable parallelism** — solver-engineer and surrogate-operator can run in the same message.
 
-**The TOUGH question:** can we use TOUGH3? No — it's proprietary, requires license request, and `build-upon` framing is stronger than `wrap-existing`. So we build a small solver in the TOUGH tradition and cite TOUGH explicitly.
+**The TOUGH question:** can we use TOUGH3? No — it's proprietary, requires license request, and building a new solver is stronger than wrapping an existing one. So we build a small solver in the TOUGH tradition and cite TOUGH explicitly.
 
 ### 4.3 Single-phase vs. two-phase (brief detour, corrected immediately)
 **Date:** 2026-04-23 afternoon
 
-**What happened:** user initially asked for two-phase physics. I pushed back: two-phase means phase transitions, saturation as a primary variable, IAPWS steam tables, primary-variable switching, and a stiff nonlinear system. That breaks the 48-hour budget with near-certainty.
+**What happened:** user initially asked for two-phase physics. I pushed back: two-phase means phase transitions, saturation as a primary variable, IAPWS steam tables, primary-variable switching, and a stiff nonlinear system. That breaks the scope with near-certainty.
 
-**Resolution:** user accepted the recommendation. Scope is **single-phase liquid water** for Day 1. Two-phase appears only as a *Day 2 evening stretch stub* (plumbing a saturation variable with no real flash logic) and only if Day 1 ends green with time to spare.
+**Resolution:** user accepted the recommendation. Scope is **single-phase liquid water** for Phase 1. Two-phase appears only as a *Phase 2 evening stretch stub* (plumbing a saturation variable with no real flash logic) and only if Phase 1 ends green with time to spare.
 
 **Why this is the right call:** two-phase is the single largest risk factor in any reservoir solver build. Single-phase keeps the math tractable (Darcy is linear in P under Boussinesq), still covers most of Indonesia's liquid-dominated fields, and leaves room for a clean benchmark pass.
 
@@ -121,7 +91,7 @@ The project's framing changed three times before settling. Each change is record
 ### 4.5 UI: React dashboard + Streamlit fallback
 **Date:** 2026-04-23 afternoon
 
-**Why React at all:** judges see the demo through the UI. A polished React+Vite+TS dashboard with Anthropic's visual design language is a stronger demo surface than Streamlit.
+**Why React at all:** a polished React+Vite+TS dashboard with Anthropic's visual design language is a stronger product surface than Streamlit.
 
 **Why Streamlit as fallback:** if the dashboard build runs over, a <200-line Streamlit app still gets the demo out the door. The cut order is explicit in the plan: drop the React dashboard before dropping the solver.
 
@@ -130,7 +100,7 @@ The project's framing changed three times before settling. Each change is record
 ### 4.6 Deployment: HuggingFace Spaces via Dockerfile
 **Date:** 2026-04-23 afternoon
 
-**Why HF Spaces:** free, always-on, judge-friendly URL, supports Dockerfile spaces (multi-stage Node+Python builds). Familiar to the AI community.
+**Why HF Spaces:** free, always-on, public URL, supports Dockerfile spaces (multi-stage Node+Python builds). Familiar to the AI community.
 
 ### 4.7 Demo framing: Ulubelu-inspired synthetic
 **Date:** 2026-04-23 afternoon
@@ -141,17 +111,16 @@ The project's framing changed three times before settling. Each change is record
 
 **Why Ulubelu specifically (not Kamojang or Darajat):** Kamojang and Darajat are vapor-dominated — they violate the single-phase-*liquid* assumption. Ulubelu, Salak, and Lahendong are liquid-dominated, so they're fair game. The `geologist` subagent enforces this.
 
-### 4.8 Day 1 evening GO/NO-GO checkpoint
+### 4.8 Phase 1 evening GO/NO-GO checkpoint
 **Date:** 2026-04-23 (decision made at plan time)
 
-**The gate:** at the end of Day 1, both analytical benchmarks (Theis pressure, 1D conduction) must pass within 5% relative error. If either fails:
+**The gate:** at the end of Phase 1, both analytical benchmarks (Theis pressure, 1D conduction) must pass within 5% relative error. If either fails:
 
 - **Drop the solver entirely.**
 - **Reframe as:** "Opus 4.7 agent orchestration over a deployed surrogate."
-- Keep all Day 2 deliverables intact.
-- Still eligible for "Best use of Claude Managed Agents" ($5K).
+- Keep all Phase 2 deliverables intact.
 
-**Why an explicit checkpoint:** hackathons kill good teams by letting them sink 20 hours into unworkable code. A fixed trigger with a pre-committed fallback is cheap insurance.
+**Why an explicit checkpoint:** a fixed trigger with a pre-committed fallback is cheap insurance against sinking hours into unworkable code.
 
 ---
 
@@ -223,13 +192,13 @@ The project has **8 subagents** (not 7, not 9 — more on that below). Each is a
 
 ## 6. Scope Boundaries (The "No" List)
 
-A project this tight is defined more by what it *doesn't* do than what it does.
+A focused project is defined more by what it *doesn't* do than what it does.
 
 | Rejected | Why |
 |---|---|
-| Full TOUGH3 clone | ~10 person-years; infeasible in 48h |
+| Full TOUGH3 clone | ~10 person-years; infeasible |
 | Installing TOUGH3 / Waiwera at runtime | License friction; deployment bloat |
-| Two-phase physics (Day 1) | Breaks the 48h budget with high probability |
+| Two-phase physics (Phase 1) | Breaks scope with high probability |
 | Retraining the CNN | v1.1 is already validated; retraining burns time with no upside |
 | 3D grids | 2D vertical section covers the demo scenarios |
 | Unstructured meshes | Structured 32×32 matches the CNN's assumption |
@@ -274,22 +243,20 @@ Two surfaces, explicit fallback order:
 
 2. **Fallback: `app/app.py`** — <200-line Streamlit app that hits the same FastAPI backend.
 
-**Cut order if time runs out:** drop React dashboard → keep Streamlit. Drop Streamlit → CLI demo. Never drop the solver (it's the 1st-place narrative).
+**Cut order if time runs out:** drop React dashboard → keep Streamlit. Drop Streamlit → CLI demo. Never drop the solver (it's the core technical narrative).
 
 **Deployment:** HuggingFace Spaces, Dockerfile space (multi-stage Node+Python).
 
 ---
 
-## 9. Deliverables (the judge-visible output)
+## 9. Deliverables
 
-By 2026-04-25 EOD:
-
-1. **GitHub repo** — `robiriu/GeoForce-CCHackathon` (public, MIT-licensed)
-2. **Live demo URL** — HF Spaces Dockerfile deployment
+1. **GitHub repo** — `robiriu/GeoForce` (public, MIT-licensed)
+2. **Live demo URL** — HF Spaces Dockerfile deployment at https://huggingface.co/spaces/robiriu/geoforce
 3. **README.md** — architecture diagram + quickstart
-4. **90-second demo video** — recorded against React dashboard
-5. **`demo/brady_validation.ipynb`** — NREL Brady Hot Springs validation cameo
-6. **Tag `v0.1-hackathon`** — submitted via Cerebral Valley portal
+4. **90-second demo video** — recorded against React dashboard (user-only task)
+5. **`demo/validation.ipynb`** — Theis 0.38%, 1D conduction 0.18%, solver↔surrogate ΔT table
+6. **Tag `v0.2`** — pushed when ready
 
 **Stretch (only if all above shipped):**
 - `.mcp.json` exposing GeoForce-Solver via MCP (Model Context Protocol)
@@ -301,22 +268,21 @@ By 2026-04-25 EOD:
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Solver fails analytical benchmarks by Day 1 EOD | Medium | High | GO/NO-GO checkpoint → surrogate-only fallback keeps $5K prize viable |
+| Solver fails analytical benchmarks by Phase 1 EOD | Medium | High | GO/NO-GO checkpoint → surrogate-only fallback |
 | React dashboard build runs over | Medium | Medium | Streamlit fallback already scoped (<200 LOC) |
-| HF Spaces deployment fails at submission time | Low | High | Test deploy on Day 2 afternoon, not evening |
-| API key / Discord access not verified | Low | Low | Pre-flight checklist in `PROGRESS.md` |
-| Scope creep during Day 2 | Medium | High | CLAUDE.md §2 priority rules override any in-flight temptation |
-| v1.1 CNN port reveals silent bug | Low | High | Smoke test first 30 minutes of Day 1 morning |
+| HF Spaces deployment fails | Low | High | Test deploy in Phase 2 afternoon, not evening |
+| Scope creep during Phase 2 | Medium | High | CLAUDE.md §2 priority rules override any in-flight temptation |
+| v1.1 CNN port reveals silent bug | Low | High | Smoke test first 30 minutes of Phase 1 morning |
 
 ---
 
 ## 11. File Inventory (as of scaffolding complete)
 
 ```
-GeoForce-CCHackathon/
+GeoForce/
 ├── CLAUDE.md                  # Project instructions (loaded every session)
 ├── AGENTS.md                  # Multi-agent runtime architecture
-├── HACKATHON-PLAN.md          # 2-day plan (the contract)
+├── PROJECT-PLAN.md            # Full plan (the contract)
 ├── PROGRESS.md                # Live task state
 ├── JOURNAL.md                 # This file — build narrative
 ├── .claude/
@@ -350,8 +316,8 @@ GeoForce-CCHackathon/
 │   └── REAL-ENGINEERING-QUESTIONS.md
 └── docs/                      # Misc
 
-(Day 1 will add: surrogate/, solver/, solver/benchmarks/, tests/, tools/, agent/)
-(Day 2 will add: dashboard/, app/, demo/, Dockerfile, README.md)
+(Phase 1 adds: surrogate/, solver/, solver/benchmarks/, tests/, tools/, agent/)
+(Phase 2 adds: dashboard/, app/, demo/, Dockerfile, README.md)
 ```
 
 ---
@@ -360,8 +326,8 @@ GeoForce-CCHackathon/
 
 **This file does not track task status.** For that, see:
 
-- **`PROGRESS.md`** — master checklist with every task organized by Day 1 Morning / Afternoon / Evening and Day 2 Morning / Afternoon / Evening, plus decisions log and blocker log.
-- **`HACKATHON-PLAN.md`** §5–§7 — the original time-boxed plan and the fallback triggers.
+- **`PROGRESS.md`** — master checklist with every task organized by phase, plus decisions log and blocker log.
+- **`PROJECT-PLAN.md`** §5–§7 — the original time-boxed plan and the fallback triggers.
 
 The separation is deliberate: `JOURNAL.md` is the narrative explanation (rarely updated); `PROGRESS.md` is the live task tracker (updated every work block).
 
@@ -371,11 +337,10 @@ The separation is deliberate: `JOURNAL.md` is the narrative explanation (rarely 
 
 | Date | Event |
 |---|---|
-| 2026-04-21 | Hackathon begins (Cerebral Valley) |
-| 2026-04-23 | Robi's sprint begins; repo created; planning + scaffolding complete; TOUGH skill added |
-| 2026-04-24 | **Day 1 execution:** surrogate port (morning), solver build (afternoon), GO/NO-GO (evening) |
-| 2026-04-25 | **Day 2 execution:** dashboard + Streamlit + deploy + demo video + submission |
-| 2026-04-27 | Hackathon ends |
+| 2026-04-23 | Sprint begins; repo created; planning + scaffolding complete; TOUGH skill added |
+| 2026-04-23 | Phase 1 execution: surrogate port (morning), solver build (afternoon), GO/NO-GO (evening) |
+| 2026-04-23 | Phase 2 execution: dashboard + Streamlit + deploy |
+| 2026-04-24 | Phase 3 polish: post-deploy fixes, multi-turn chat |
 
 ---
 
@@ -387,23 +352,22 @@ The separation is deliberate: `JOURNAL.md` is the narrative explanation (rarely 
 - **IAPWS-IF97 formulation:** via the `iapws` PyPI package (Juanes & Lerman port)
 - **Theis analytical solution:** Theis, C.V. (1935)
 - **Design tokens:** Anthropic visual design language, as interpreted in the `claude-design-system` skill
-- **Agent orchestration pattern:** inspired by CrossBeam (Opus 4.6 hackathon winner)
 - **Multi-agent execution:** Claude Code's `Agent` tool with parallel dispatch
-- **Runtime (Day 1 evening):** `claude-agent-sdk` (Python) pinned to `claude-opus-4-7`
+- **Runtime:** `claude-agent-sdk` (Python) pinned to `claude-opus-4-7`
 
 All original code in this repo is MIT-licensed. Citations are in code comments where TOUGH concepts are adopted.
 
 ---
 
-*Last updated: 2026-04-23 — end of scaffolding phase, before Day 1 execution begins.*
+*Last updated: 2026-04-23 — end of scaffolding phase, before Phase 1 execution begins.*
 
 ---
 
-## 15. Day-2 Build Log — 2026-04-23
+## 15. Feature Build Log — Phase 2
 
 ### 15.1 UQ tools
 
-`tools/monte_carlo.py` and `tools/sensitivity.py` landed early on Day 2.
+`tools/monte_carlo.py` and `tools/sensitivity.py` landed early in Phase 2.
 The Monte-Carlo tool draws `n_samples` from per-parameter distributions
 declared in `demo/scenarios.yaml`, runs the surrogate in a tight loop
 (each call is ~200 ms → 200 samples in ~40 s), and returns P10/P50/P90
@@ -436,8 +400,8 @@ can also call it indirectly through its MCP tools.
 
 ### 15.3 React dashboard
 
-The visual differentiator for a hackathon with ~200 submissions is
-almost always the UI. Given the "Built with Opus 4.7" framing, the
+The visual differentiator is almost always the UI for any
+software-focused demo. Given the "Built with Opus 4.7" framing, the
 dashboard deliberately looks like a Claude artifact — warm
 `#F5F4EE` paper, Clay `#CC785C` accent, Source Serif 4 headings with
 italic captions, Inter body, JetBrains Mono for the tool-call preview.
@@ -470,7 +434,7 @@ is copied into `/app/dashboard/dist` and `agent.api` auto-detects it
 and mounts `/assets` + `/` for SPA serving. Single port, single
 container, `HEALTHCHECK` on `/health`.
 
-### 15.5 Dry-run — 2026-04-23
+### 15.5 Dry-run results
 
 Backend restarted on `:8765`. `/predict` roundtrips all three
 scenarios:
@@ -511,11 +475,11 @@ What we deliberately did **not** build:
 
 ---
 
-## 16. Day-2 Evening — Ship — 2026-04-23
+## 16. Feature Build Log — Phase 3
 
 ### 16.1 Physics blocker resolved
 
-Afternoon dry-run surfaced two anomalies: solver pressure on q1 /
+Phase 2 dry-run surfaced two anomalies: solver pressure on q1 /
 q3 reading ~10² MPa (physically absurd — reservoir should stay around
 15 MPa) and a 610 °C temperature excursion on q3 (above T_initial). I
 thought it was a unit or boundary-condition bug. It wasn't.
@@ -545,17 +509,17 @@ Every T stays inside `[T_inj, T_initial]` (max principle holds),
 every P stays inside ±1 MPa of the base. The analytical benchmarks
 were never wrong; the scenarios were just ill-posed.
 
-Lesson for the JOURNAL: the dual-engine dashboard design paid off
+Lesson: the dual-engine dashboard design paid off
 instantly. The Δ-Tmax chip made the q1 / q3 anomaly visually
 obvious, which is exactly what the two-engine thesis was supposed to
-enable. If this had been solver-only I would have shipped wrong
-numbers without noticing.
+enable. If this had been solver-only the wrong numbers would have
+shipped without detection.
 
 ### 16.2 Validation notebook
 
 Original plan was a "Brady validation cameo". No Brady dataset was
 actually available in the ForceX-AI archive — the reference in
-HACKATHON-PLAN.md was aspirational. Rather than fabricate something,
+PROJECT-PLAN.md was aspirational. Rather than fabricate something,
 I pivoted to an honest in-repo validation: `demo/validation.ipynb`
 re-runs the two analytical gates (Theis 0.38 %, 1-D conduction
 0.18 %) and the solver↔surrogate ΔT table above, each from first
@@ -582,16 +546,15 @@ try (Docker layer cache and all) — runtime stage `RUNNING` within a
 few minutes.
 
 The build still needs an `ANTHROPIC_API_KEY` Space secret for
-`/query` — that's a user-only step (I do not handle their keys).
+`/query` — that's a user-only step.
 
-### 16.4 Tag + submission
+### 16.4 Tag
 
-Tagged `v0.1-hackathon` locally with a manifest of what's included
+Tagged `v0.2` locally with a manifest of what's included
 (benchmarks, subagents, dashboard, SSE, HF URL). Not pushed yet —
-intentionally leaving the GitHub push and the Cerebral Valley
-submission as user-gated actions.
+intentionally leaving the GitHub push as a user-gated action.
 
-### 16.5 What I'd do with a Day 3
+### 16.5 What comes next
 
 - A real field cameo. NREL's EGS Collab datasets are public and
   would actually exercise the solver.
@@ -602,7 +565,7 @@ submission as user-gated actions.
 - MCP-expose GeoForce-Solver and v1.1 surrogate so any Claude Code
   user can `/install` the engines directly.
 
-### 16.6 Day-3 morning: LFS pointer stub in Docker build
+### 16.6 LFS pointer stub in Docker build
 
 Post-deploy, `/predict?engine=surrogate` returned 500 on the live Space
 while `/health`, `/scenarios`, and `/predict?engine=solver` all worked.
@@ -636,9 +599,9 @@ Rebuild succeeded (~3 min). Live verification:
 time. Runtime code can fetch LFS artefacts via `resolve/` URLs, but
 don't assume `COPY` will DTRT for binary blobs.
 
-### 16.7 Day-3 late morning: agent tool calls drive the canvas
+### 16.7 Agent tool calls drive the canvas
 
-Engineer feedback after the first live session: "the plot only shows
+User feedback after the first live session: "the plot only shows
 up from the scenario card, not from what the agent did." Fair — the
 two UI paths (scenario → `/predict` → FieldPanel, and query →
 `/query` → AgentTrace) had been intentionally decoupled so the
@@ -659,7 +622,7 @@ output from the scenario preview. A solver-only or surrogate-only
 partial render is supported so the canvas can update mid-stream (you
 see the solver card appear, then the surrogate slides in next to it).
 
-### 16.8 Day-3 afternoon: chat sessions + engineer-grade UX
+### 16.8 Multi-turn chat sessions + engineer-grade UX
 
 Two follow-up asks from the user:
 
@@ -703,14 +666,10 @@ The hero (three scenario cards + side-by-side canvas) stays as the
 top row of the grid — first impression preserved, canvas keeps
 updating live on every tool call across every turn.
 
-**Budget note.** Dev iteration on this change runs on the user's Max
-subscription (they ran `/login` to switch CLI auth); the HF Space
-secret still holds the API key for judge-facing traffic. Per-turn
-Anthropic cost is linear in turn count, not quadratic, because the
-tool results that go back to Opus are 8×8 previews — not the full
-(32,32) arrays the dashboard renders. Ballpark: a 3-turn follow-up
-conversation costs ~$0.30-0.80 on Opus 4.7.
+**Cost note.** Per-turn Anthropic cost is linear in turn count, not
+quadratic, because the tool results that go back to Opus are 8×8
+previews — not the full (32,32) arrays the dashboard renders.
+Ballpark: a 3-turn follow-up conversation costs ~$0.30-0.80 on Opus 4.7.
 
-*Last updated: 2026-04-24 — Day 3 afternoon, multi-turn chat live,
+*Last updated: 2026-04-24 — Phase 3 complete, multi-turn chat live,
 hero preserved, canvas dynamic across turns.*
-

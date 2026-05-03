@@ -6,24 +6,20 @@ This file is loaded automatically at the start of every Claude Code session in t
 
 ## 1. Project Identity
 
-**Name:** GeoForce-CCHackathon
-**Event:** Built with Opus 4.7 — Claude Code Hackathon (Cerebral Valley + Anthropic, 2026-04-21 to 2026-04-27)
+**Name:** GeoForce
 **Author:** Robi Dany Riupassa
-**Time budget:** 2 days from 2026-04-23
-**Primary prize target:** 1st place ($50K API credits)
-**Secondary:** "Best use of Claude Managed Agents" ($5K)
 
 **One-line thesis:**
-> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate — to answer real Indonesian geothermal engineering questions in 48 hours.
+> Opus 4.7 agents orchestrate two engines — a newly-built open-source geothermal solver (**GeoForce-Solver**) and a deployed physics-informed CNN surrogate — to answer real Indonesian geothermal engineering questions.
 
-See `HACKATHON-PLAN.md` for full plan, `AGENTS.md` for runtime architecture.
+See `PROJECT-PLAN.md` for full plan, `AGENTS.md` for runtime architecture.
 
 ---
 
 ## 2. Priority Rules (override everything else)
 
-1. **Always read `HACKATHON-PLAN.md` before proposing scope changes.** The plan is the contract.
-2. **Honor the Day-1-evening GO/NO-GO checkpoint.** If the solver fails analytical benchmarks, drop it immediately and fall back to surrogate-only. See HACKATHON-PLAN.md §7.
+1. **Always read `PROJECT-PLAN.md` before proposing scope changes.** The plan is the contract.
+2. **If the solver fails analytical benchmarks, drop it and fall back to surrogate-only.**
 3. **Single-phase water only.** Two-phase physics is OUT OF SCOPE. If a user suggests two-phase, point at plan §3 and refuse politely.
 4. **No live simulators** — no TOUGH3, no TOUGH2, no Waiwera installs. GeoForce-Solver is the only solver we ship.
 5. **Never retrain the CNN.** Use `surrogate/weights/geoforce_cnn_v1.1.pt` as-is.
@@ -66,7 +62,7 @@ Defined under `.claude/skills/`:
 | `field-visualization` | Render 2D heatmap with optional UQ bands | Plotting T or P field |
 | `analytical-benchmarks` | Theis + 1D conduction solutions for solver validation | Verifying `solver/` correctness |
 | `claude-design-system` | Anthropic visual design tokens + patterns for React dashboard | Any styling decision in `dashboard/` — colors, typography, spacing, components |
-| `tough-reference` | Deep knowledge of the TOUGH family (LBNL): architecture, governing eqs, EOS modules, numerics, licensing | Any solver-engineer design decision; any judge/user question about how GeoForce-Solver relates to TOUGH |
+| `tough-reference` | Deep knowledge of the TOUGH family (LBNL): architecture, governing eqs, EOS modules, numerics, licensing | Any solver-engineer design decision; any question about how GeoForce-Solver relates to TOUGH |
 
 Skills are the **user-invocable tooling layer**. Agents call them through natural language references. Keep skills idempotent and side-effect-free wherever possible.
 
@@ -111,11 +107,10 @@ A post-write hook auto-runs affected tests; see `.claude/hooks/post_write_pytest
 
 ## 8. Git Conventions
 
-- **Branch:** work directly on `main` for hackathon speed.
 - **Commits:** one logical change per commit. Imperative subject (≤60 char).
 - **Trailer:** every commit Claude co-authors includes:
   ```
-  Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+  Co-Authored-By: Claude <noreply@anthropic.com>
   ```
 - **Never force-push** unless user explicitly asks.
 - **Never commit** files matching: `*.key`, `*-sa-key.json`, `.env`, `weights/*.pt.bak`
@@ -124,9 +119,9 @@ A post-write hook auto-runs affected tests; see `.claude/hooks/post_write_pytest
 
 ## 9. References
 
-- `HACKATHON-PLAN.md` — authoritative scope and schedule
+- `PROJECT-PLAN.md` — authoritative scope and schedule
 - `AGENTS.md` — agent architecture and flows
-- `PROGRESS.md` — live task state
+- `PROGRESS.md` — task state
 - `initial/` — seed planning docs from ForceX-AI (frozen, read-only)
 - **Prior work:** `/home/ubuntu/ForceX-AI/products/geoforce/` — source of v1.1 weights, training code, scenario definitions, documentation
 
@@ -136,4 +131,4 @@ A post-write hook auto-runs affected tests; see `.claude/hooks/post_write_pytest
 
 - If a decision affects scope → stop and ask, don't silently expand.
 - If a decision affects numerics correctness → invoke the `reviewer` subagent.
-- If a decision affects the timeline → check HACKATHON-PLAN.md §5 and §7 buffer rules.
+- If a decision affects scope → check `PROJECT-PLAN.md`.

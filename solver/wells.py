@@ -4,7 +4,7 @@ Each :class:`WellSpec` is pinned to a single grid cell and carries a
 signed mass rate (+ injection, − production) and (for injectors) an
 injection temperature. This module does *not* implement a Peaceman
 productivity index — the well is just a direct volumetric source in the
-host cell. For the 2D vertical-section hackathon scope that is accurate
+host cell. For the 2D vertical-section scope that is accurate
 enough; real wellbore hydraulics are out of scope.
 """
 

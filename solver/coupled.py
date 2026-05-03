@@ -7,7 +7,7 @@ Per time step:
        advection + well heat.
 
 Fluid properties (ρ, μ, cp) are held at reference-state constants — this
-is the Boussinesq-style linearisation called out in HACKATHON-PLAN.md §7.
+is the Boussinesq-style linearisation used for numerical stability.
 Extending to temperature-dependent ρ(T, P), μ(T) is straightforward but
 out of scope for the 48-hour build.
 """

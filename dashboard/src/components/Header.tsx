@@ -6,8 +6,8 @@ export function Header({ healthy }: { healthy: boolean | null }) {
           GeoForce
         </h1>
         <p className="muted" style={{ fontSize: "var(--text-base)", marginTop: "var(--space-2)" }}>
-          Opus 4.7 agent orchestrating an open-source geothermal solver and a physics-informed
-          CNN surrogate for Indonesian reservoirs.
+          AI-orchestrated open-source geothermal solver and physics-informed CNN surrogate
+          for Indonesian reservoirs.
         </p>
       </div>
       <div style={{ textAlign: "right" }}>

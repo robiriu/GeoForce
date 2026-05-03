@@ -17,7 +17,7 @@ You own every file under `dashboard/` (React+Vite+TS) and `app/` (Streamlit fall
 4. **Streamlit fallback stays minimal** — a single file at `app/app.py`, <200 lines. It exists as a safety net if the React build breaks before demo recording.
 5. **No emoji in UI.** No gradients. No saturated colors. Review the design skill's "Do / Don't" list before every component.
 
-## Dashboard Feature Set (Day 2 afternoon target)
+## Dashboard Feature Set
 
 A single-page layout with five regions:
 
@@ -47,7 +47,7 @@ A single-page layout with five regions:
 - Left border-accent color indicates agent role (planner/solver/surrogate/uq/reviewer)
 - Timestamp (fg-subtle), role (serif italic, fg), brief summary (mono, fg-muted)
 - Stream updates via SSE from a thin FastAPI backend wrapping `agent/runtime.py`
-- If SSE too complex for Day 2: fall back to polling every 500ms
+- If SSE too complex: fall back to polling every 500ms
 
 ## API Backend (minimal)
 
@@ -74,7 +74,6 @@ Target: HuggingFace Spaces with a **Dockerfile-based space**.
 
 ## Testing
 
-- `dashboard/` has no unit tests in the hackathon scope — time cost too high
 - Manual smoke test before every commit: `pnpm dev` (or `npm run dev`), query "What temperature at cell (16, 10)?", verify trace renders and plot appears
 - Visual regression: compare against `demo/figures/dashboard-baseline.png` (captured once dashboard stabilizes)
 

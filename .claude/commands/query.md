@@ -23,7 +23,7 @@ You are executing the **GeoForce query pipeline** on the user's question.
 
 ## Guardrails
 
-- If the question is outside Q1–Q3 scope (see HACKATHON-PLAN.md §3), decline and explain.
+- If the question is outside Q1–Q3 scope (see PROJECT-PLAN.md §3), decline and explain.
 - If the planner reports a reviewer reject, surface the rejection reason prominently.
 - If the fallback is active (solver dropped), skip the solver-vs-surrogate comparison.
 

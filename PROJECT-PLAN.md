@@ -1,43 +1,32 @@
-# GeoForce — Claude Code Opus 4.7 Hackathon Plan (v2)
+# GeoForce — Project Plan
 
-**Deadline:** 2 days from 2026-04-23
-**Hackathon:** Built with Opus 4.7: a Claude Code Hackathon (Cerebral Valley + Anthropic)
-**Event window:** 2026-04-21 4:00 PM → 2026-04-27 12:00 AM (America/Detroit)
-**Our target:** submit inside 2 days (ship by 2026-04-25 EOD)
-**Author:** Robi Dany Riupassa (built with Claude Code Opus 4.7)
-**Repo:** https://github.com/robiriu/GeoForce-CCHackathon
+**Author:** Robi Dany Riupassa (ForceX AI)
+**Repo:** https://github.com/robiriu/GeoForce
 
 ---
 
 ## 1. Thesis
 
-> *"Opus 4.7 agents built a minimal, open-source geothermal solver from scratch in 48 hours — gravity-aware, single-phase, IAPWS-IF97 water properties, validated against analytical benchmarks. This is step 1 toward removing the TOUGH3 license barrier for Indonesian researchers. We acknowledge it is not TOUGH3. It is a transparent blueprint that a small team — or a team of agents — can extend."*
+> *"A minimal, open-source geothermal solver built from scratch — gravity-aware, single-phase, IAPWS-IF97 water properties, validated against analytical benchmarks. This is step 1 toward removing the TOUGH3 license barrier for Indonesian researchers. We acknowledge it is not TOUGH3. It is a transparent blueprint that a small team — or a team of agents — can extend."*
 
 Two orchestrated engines:
 
-| Engine | Role | Built when |
-|---|---|---|
-| **GeoForce-Solver** (new) | Ground-truth-ish single-phase solver, built by agents during the hackathon | Day 1 afternoon |
-| **GeoForce v1.1 CNN** (existing) | Fast surrogate for Monte Carlo + sensitivity | Already deployed in ForceX-AI |
+| Engine | Role |
+|---|---|
+| **GeoForce-Solver** (new) | Ground-truth-ish single-phase solver, built by agents |
+| **GeoForce v1.1 CNN** (existing) | Fast surrogate for Monte Carlo + sensitivity, deployed in ForceX-AI |
 
-A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geothermal engineering questions.
+A team of Claude subagents orchestrates both tools to answer real geothermal engineering questions.
 
-## 2. Prize Strategy
-
-**Primary target:** 1st place ($50K API credits)
-**Safety net:** "Best use of Claude Managed Agents" ($5K) — our multi-agent architecture qualifies by construction
-**Precedent:** Opus 4.6 winner (CrossBeam) used parallel sub-agents — same pattern
-
-## 3. Scope — In / Out
+## 2. Scope — In / Out
 
 ### IN
 
-1. **GeoForce-Solver solver** (NEW, Python)
+1. **GeoForce-Solver** (NEW, Python)
    - 2D vertical section (e.g., 50×30 cells), gravity-aware
    - Single-phase water with **IAPWS-IF97** for ρ(T,P), μ(T), h(T,P)
    - Implicit backward-Euler, coupled Darcy + energy conservation
    - Well source terms (injection, production)
-   - Built *live* by a multi-agent team during the hackathon
    - Validated against **Theis** (pressure) and **1D conduction** (temperature) analytical solutions
 
 2. **GeoForce v1.1 surrogate** (PORTED)
@@ -56,22 +45,21 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
 
 5. **Dual-surface demo UI** — primary: React dashboard styled with Anthropic's visual design language (warm paper bg, serif headings, Clay accent, live agent-trace stream via SSE, dual-engine plot cards, UQ overlay). Fallback: Streamlit single-page app. Dashboard deployed to HuggingFace Spaces as a Dockerfile space.
 
-6. **Validation cameo** — NREL Brady Hot Springs open dataset comparison (3h slot)
+6. **Validation cameo** — NREL Brady Hot Springs open dataset comparison
 
-7. **README + 90s demo video + `v0.1-hackathon` tag**
+7. **README + `v0.1` tag**
 
 ### OUT (explicitly cut)
 
-- **Two-phase physics (steam + liquid) — fatal in 2 days, confirmed 2026-04-23.** A minimal Day-2-evening STUB (saturation variable plumbing, no flash logic) is permitted only if Day 1 solver is green and submission is already filed. Real two-phase is post-hackathon.
+- **Two-phase physics (steam + liquid).** A minimal STUB (saturation variable plumbing, no flash logic) is permitted only if the Phase 1 solver is green and a v0.1 release has been tagged. Real two-phase is post-v0.1.
 - 3D grids — vertical-section 2D only
 - TOUGH3 / TOUGH2 / Waiwera — any live external simulator install
 - Retraining the CNN
 - 3D visualization (three.js, deck.gl)
 - PostgreSQL / auth / billing / multi-tenant
-- HuggingFace publication (only if Day 2 evening is clean)
-- Q4–Q9 engineering questions — require production-state tracking we don't have
+- Q4–Q9 engineering questions — require production-state tracking not yet implemented
 
-## 4. Technical Architecture
+## 3. Technical Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -111,12 +99,12 @@ A team of Claude Opus 4.7 subagents orchestrates both tools to answer real geoth
 ### Project layout
 
 ```
-GeoForce-CCHackathon/
+GeoForce/
 ├── CLAUDE.md                       # project-wide Claude Code instructions
 ├── AGENTS.md                       # visible map of agents + skills + flows
-├── HACKATHON-PLAN.md               # this file
+├── PROJECT-PLAN.md                 # this file
 ├── PROGRESS.md                     # live task tracking
-├── README.md                       # (Day 2 write-up)
+├── README.md
 ├── pyproject.toml                  # deps
 ├── .env.example
 ├── .mcp.json                       # (optional) MCP server exposing tools
@@ -143,7 +131,7 @@ GeoForce-CCHackathon/
 │   │   └── demo.md
 │   └── hooks/
 │       └── post_write_pytest.sh    # auto-run tests after edits to solver/
-├── solver/                         # GeoForce-Solver (built during hackathon)
+├── solver/                         # GeoForce-Solver
 │   ├── __init__.py
 │   ├── grid.py                     # 2D vertical section mesh
 │   ├── properties.py               # IAPWS-IF97 wrappers
@@ -198,20 +186,20 @@ GeoForce-CCHackathon/
 └── demo/
     ├── scenarios.yaml
     ├── screencast.mp4              # 90s demo
-    └── brady_validation.ipynb      # Day 2 validation cameo
+    └── brady_validation.ipynb      # validation cameo
 ```
 
-## 5. Two-Day Schedule
+## 4. Development Phases
 
-### Day 1 — Build both engines + wire up agent team
+### Phase 1 — Engine Build
 
-**Morning (3h) — Surrogate port + Claude scaffolding verified**
+**Surrogate port + Claude scaffolding**
 - [ ] Copy v1.1 weights + `ReservoirCNN` class + encoding into `surrogate/`
 - [ ] `tests/test_surrogate_smoke.py` — load + predict + shape assert
 - [ ] Confirm `.claude/` scaffolding loads correctly (subagents discovered)
 - [ ] `pyproject.toml` installs clean in a fresh venv
 
-**Afternoon (4h) — GeoForce-Solver built by agent team**
+**GeoForce-Solver — built by agent team**
 - [ ] Orchestrate solver-engineer + geologist + reviewer agents
 - [ ] `solver/properties.py` — IAPWS-IF97 wrappers (use `iapws` PyPI package)
 - [ ] `solver/grid.py` — 2D vertical section, structured grid
@@ -221,21 +209,21 @@ GeoForce-CCHackathon/
 - [ ] `solver/benchmarks/theis.py` + `conduction_1d.py`
 - [ ] `tests/test_solver_theis.py` + `test_solver_conduction.py` pass
 
-**Evening (2h) — GO / NO-GO checkpoint + agent wiring**
-- [ ] **CHECKPOINT:** both Theis and 1D conduction tests green → proceed. Red → drop solver, ship surrogate-only (see §7 fallback).
+**Solver validation + agent wiring**
+- [ ] Both Theis and 1D conduction tests green (fallback: drop solver, ship surrogate-only — see §5)
 - [ ] `tools/predict_solver.py` + `tools/predict_surrogate.py` unified interface
 - [ ] `agent/runtime.py` — `claude-agent-sdk` boot; answer Q1 from CLI
-- [ ] Commit + push: **milestone: both engines working, agent answers Q1**
+- [ ] Commit + tag: **milestone: both engines working, agent answers Q1**
 
-### Day 2 — Polish, demo, ship
+### Phase 2 — Integration
 
-**Morning (3h) — Backend + Streamlit fallback + demo scenarios**
+**Backend + Streamlit fallback + demo scenarios**
 - [ ] `agent/api.py` — FastAPI wrapping `agent/runtime.py`, SSE for agent-trace stream, CORS
 - [ ] `app/app.py` Streamlit fallback (<200 lines, polls `/query`)
 - [ ] `demo/scenarios.yaml` — 3 hand-tuned demo queries (Q1, Q2, Q3)
 - [ ] `tools/monte_carlo.py` + `tools/sensitivity.py` wired into Q2/Q3
 
-**Afternoon (4h) — React dashboard (ui-engineer + claude-design-system)**
+**React dashboard**
 - [ ] `dashboard/` scaffolded with Vite+TS; `tokens.css` from `claude-design-system` skill
 - [ ] Components: Header, QueryInput, ScenarioPicker, AgentTrace (SSE), FieldPlot, UQOverlay, AnswerPanel
 - [ ] `dashboard/src/api/client.ts` — SSE consumer, zustand store
@@ -243,26 +231,27 @@ GeoForce-CCHackathon/
 - [ ] Dry-run 3 demo scenarios end-to-end through dashboard
 - [ ] `Dockerfile` multi-stage (Node build + Python runtime)
 
-**Evening (3h) — Ship**
+### Phase 3 — Polish & Deploy
+
 - [ ] Deploy to HuggingFace Spaces (Dockerfile space)
-- [ ] `README.md` — problem, architecture diagram, install/run, example queries, **honest limitations**
-- [ ] Record 90s demo video against the React dashboard (OBS/Loom)
-- [ ] `demo/brady_validation.ipynb` — compressed version (Brady load + side-by-side plot)
-- [ ] Tag `v0.1-hackathon`, push, submit via Cerebral Valley portal
+- [ ] `README.md` — problem, architecture diagram, install/run, example queries, honest limitations
+- [ ] Record 90s demo video against the React dashboard
+- [ ] `demo/brady_validation.ipynb` — Brady load + side-by-side plot
+- [ ] Tag `v0.1`, push
 
 ### Stretch goals (only if all above shipped)
 - [ ] Add `.mcp.json` exposing GeoForce-Solver as an MCP server
-- [ ] **Two-phase stub** (optional): add a saturation-variable placeholder (`S_g` field, clamped to 0) and IAPWS-IF97 saturation-curve lookup in `solver/properties.py`. No flash logic. Signals to judges that the architecture extends to two-phase without claiming it works. Condition: only if Day 1 solver is green AND demo video is recorded AND submission is filed.
+- [ ] **Two-phase stub** (optional): add a saturation-variable placeholder (`S_g` field, clamped to 0) and IAPWS-IF97 saturation-curve lookup in `solver/properties.py`. No flash logic. Signals that the architecture extends to two-phase without claiming it works.
 - [ ] Polish README with architecture diagrams + Mermaid graphs
 
-### Buffer / cut order if behind
+### Priority cut order if behind
 1. Drop HuggingFace deploy (demo video shot locally instead)
-2. **Drop React dashboard** — record demo against Streamlit fallback
+2. Drop React dashboard — record demo against Streamlit fallback
 3. Drop Q3 (well-placement) — keep Q1, Q2
 4. Drop sensitivity tool — keep predict + Monte Carlo
-5. (Day 1 evening checkpoint): drop solver entirely → surrogate-only fallback
+5. (Phase 1 fallback): drop solver entirely → surrogate-only
 
-## 6. Deliverables Checklist
+## 5. Deliverables Checklist
 
 - [ ] Agent team answers Q1, Q2, Q3 from real user queries
 - [ ] Both engines callable; dual-engine Streamlit view works
@@ -272,67 +261,61 @@ GeoForce-CCHackathon/
 - [ ] Brady validation notebook renders side-by-side plot
 - [ ] README with architecture + honest limitations
 - [ ] 90-second demo video
-- [ ] Git tag `v0.1-hackathon` + Cerebral Valley submission
+- [ ] Git tag `v0.1`
 
-## 7. Risks & Mitigations (updated)
+## 6. Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| **Solver fails to converge / NaN** | High | Blocks Day 2 demo | Start explicit forward-Euler fallback; if Theis fails EOD Day 1, drop solver (see fallback) |
+| **Solver fails to converge / NaN** | High | Blocks Phase 3 demo | Start explicit forward-Euler fallback; if Theis fails at end of Phase 1, drop solver (see §4 fallback) |
 | **Gravity-coupled numerics unstable** | Medium | Solver unusable | Use Boussinesq (incompressible) approximation first; iterate only if stable |
 | **IAPWS-IF97 package slow/buggy** | Low | Property calcs stall | `iapws` PyPI is mature; fall back to polynomial fits over 50–350°C |
 | **Agents generate buggy numerical code** | High | Solver doesn't work | Reviewer agent enforces analytical-benchmark tests as the gate |
-| **v1.1 weights don't load (torch skew)** | Medium | Surrogate broken | Smoke test is first task Day 1; if broken, retrain a tiny scratch CNN (backup plan) |
+| **v1.1 weights don't load (torch skew)** | Medium | Surrogate broken | Smoke test is first task in Phase 1; if broken, retrain a tiny scratch CNN |
 | **Claude Agent SDK flaky on complex queries** | Medium | Agent loops fail | Keep tool schemas minimal, ≤3 tools per turn, timeout wrappers |
 | **Streamlit async/sync mismatch** | Low | UI stalls | Run agent synchronously, stream via `st.write_stream` |
 | **React dashboard build fails on HF Spaces** | Medium | No hosted demo | Dockerfile falls through to Streamlit CMD; record video locally |
 | **SSE streaming flakes in the browser** | Medium | Agent trace doesn't appear live | Dashboard polls `/query` every 500ms as fallback |
 | **Custom Claude design tokens clash with Plotly defaults** | Low | Ugly plot cards | Override Plotly theme with `plotly_white` + custom colorway using design tokens |
-| **Day 2 compresses into 1 day** | Medium | Cut demo scope | Buffer cut order in §5 |
-| **API quota burns during recording** | Low | Demo aborted | Record before HF deploy; $500 participant credits should be sufficient |
-| **Submission portal issues** | Low | Missed deadline | Submit at noon Day 2, not evening |
 
-### Day 1 Evening Fallback Trigger (non-negotiable)
+### Phase 1 Solver Fallback Trigger (non-negotiable)
 
-If either `test_solver_theis.py` or `test_solver_conduction.py` is **not green** by end of Day 1:
+If either `test_solver_theis.py` or `test_solver_conduction.py` is **not green** by end of Phase 1:
 - Drop all `solver/*` code from the critical path
-- Revert to surrogate-only plan (v1 of this doc)
-- Reframe pitch: *"Claude Opus 4.7 agent orchestration over a deployed physics-informed surrogate"*
-- Still viable for "Best use of Claude Managed Agents" $5K prize
-- Day 2 plan unchanged; we keep Streamlit, Brady validation, video
+- Revert to surrogate-only plan
+- Reframe pitch: *"Claude agent orchestration over a deployed physics-informed surrogate"*
+- Phase 2 and Phase 3 plans remain unchanged; keep Streamlit, Brady validation, demo video
 
-## 8. Pre-flight Checklist (before Day 1 starts)
+## 7. Environment Setup
 
-- [ ] Confirm registration accepted for the Cerebral Valley hackathon (acceptance email)
-- [ ] Locate Discord invite (in acceptance email)
 - [ ] `ANTHROPIC_API_KEY` exported in shell
-- [ ] $500 participant credits confirmed in Anthropic console
 - [ ] Fresh `.venv` in repo root with Python 3.11+
 - [ ] `iapws` PyPI package available (pin version in pyproject)
-- [ ] Source files reachable at `/home/ubuntu/ForceX-AI/products/` (already verified)
+- [ ] Source files reachable at `/home/ubuntu/ForceX-AI/products/` (v1.1 weights source)
 
-## 9. Open Decisions (answered)
+## 8. Open Decisions (resolved)
 
-1. **Scope:** Solver + Surrogate dual-tool — **APPROVED 2026-04-23**
+1. **Scope:** Solver + Surrogate dual-tool — confirmed
 2. **Solver name:** **GeoForce-Solver** (provisional; 1 find/replace to rename)
 3. **Phase:** single-phase water; two-phase cut as out-of-scope
 4. **Agent runtime:** `claude-agent-sdk` + `ANTHROPIC_API_KEY`
 5. **Demo framing:** **Ulubelu-inspired synthetic** — use the Ulubelu field name for on-brand Indonesian narrative, but parameters chosen so the single-phase, liquid-dominated assumption is honest (Ulubelu is 200–240°C, liquid-dominated). Avoids over-claiming vs real Pertamina data.
-8. **Demo UI:** React dashboard (primary) + Streamlit (fallback). React uses Anthropic visual design language via the `claude-design-system` skill. Deployed to HuggingFace Spaces via Dockerfile space.
-6. **Python env:** fresh `.venv` in repo root
-7. **Primary prize:** 1st place ($50K); Managed Agents ($5K) as safety net
+6. **Demo UI:** React dashboard (primary) + Streamlit (fallback). React uses Anthropic visual design language via the `claude-design-system` skill. Deployed to HuggingFace Spaces via Dockerfile space.
+7. **Python env:** fresh `.venv` in repo root
 
 ---
 
-**Status:** scaffolding in progress. GeoForce-Solver and agent work begin Day 1 morning.
+**Status:** active development.
 
 ---
 
-## 10. Post-Day-2 addendum — engineer-grade chat (2026-04-24)
+## 9. Feature Updates
 
-Day 2 shipped a single-shot `/query` that fires a fresh
-`ClaudeSDKClient` per question. During Day 3 the user asked for a
-follow-up pattern "so engineers can actually use this", while keeping
+### v0.2 — Engineer-grade chat (post-v0.1)
+
+The initial v0.1 release shipped a single-shot `/query` that fires a fresh
+`ClaudeSDKClient` per question. This update adds a conversational follow-up
+pattern so engineers can iterate on a question within a session, while keeping
 the three demo scenario cards as the first impression.
 
 **Scope change (in):**
@@ -349,19 +332,18 @@ the three demo scenario cards as the first impression.
   cards + side-by-side canvas remain as the top-row hero.
 - Canvas continues to update live on each `predict_solver` /
   `predict_surrogate` tool call, across every turn of the chat, via
-  the inline `/predict` pathway added on Day 2.
+  the inline `/predict` pathway added in v0.1.
 
 **Scope change (out):**
 
 - No persisted history — sessions live in memory only, cleared on
-  Space restart. Judges will not redeploy mid-demo, and the 10-min
-  TTL is long enough for any single evaluation session.
+  Space restart. The 10-min TTL is sufficient for any single evaluation
+  session.
 - No per-session auth — the HF Space is public; the `/sessions`
   endpoint is open. Acceptable because the server-side rate limit
   is the 32-session cap and the agent itself enforces
   `max_turns=12` per turn.
 
-**Cost discipline:** each follow-up turn is one Opus 4.7 call with
+**Cost discipline:** each follow-up turn is one model call with
 context growing linearly (compressed 8×8 tool previews, not full
-arrays). ~$0.30–0.80 per 3-turn follow-up, well inside the remaining
-budget.
+arrays). ~$0.30–0.80 per 3-turn follow-up.

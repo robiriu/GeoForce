@@ -1,4 +1,4 @@
-"""Claude agent runtime for GeoForce-CCHackathon.
+"""Claude agent runtime for GeoForce.
 
 Wires the two physics engines — `tools.predict_solver` and
 `tools.predict_surrogate` — into an in-process SDK MCP server, then runs

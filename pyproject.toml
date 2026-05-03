@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "geoforce-cchackathon"
-version = "0.1.0"
-description = "Opus 4.7 agents orchestrate GeoForce-Solver + v1.1 CNN surrogate for Indonesian geothermal engineering questions"
+name = "geoforce"
+version = "0.2.0"
+description = "AI-orchestrated geothermal solver + CNN surrogate for Indonesian reservoir engineering"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

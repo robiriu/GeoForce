@@ -196,4 +196,4 @@ mpl.rcParams.update({
 
 ## Reference
 
-This skill codifies the visual language used on claude.ai, anthropic.com, and the Built with Opus 4.7 hackathon landing page. It is an *interpretation* based on visible public UI — exact hex codes are approximations tuned for coherence, not pixel-matches to Anthropic's brand guide. Feel free to adjust tokens slightly, but **preserve the mood**: warm, minimal, text-forward, Clay-accented.
+This skill codifies a visual language inspired by claude.ai and anthropic.com. It is an *interpretation* based on visible public UI — exact hex codes are approximations tuned for coherence. Feel free to adjust tokens slightly, but **preserve the mood**: warm, minimal, text-forward, Clay-accented.
