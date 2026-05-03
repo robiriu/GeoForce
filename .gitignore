@@ -6,6 +6,10 @@
 *-sa-key.json
 *-credentials.json
 .firebase-sa-key.json
+# GCP service-account keys (Vertex AI orchestrator)
+*-gcp-sa.json
+geoforce-sa*.json
+google-credentials*.json
 
 # Python
 __pycache__/

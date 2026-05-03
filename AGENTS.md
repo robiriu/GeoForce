@@ -189,7 +189,7 @@ In this repo, type:
 
 The `.claude/commands/query.md` slash command wraps a call to the `planner` subagent with your question.
 
-### From `claude-agent-sdk` (programmatic runtime)
+### From the v2.0 runtime (Vertex AI Gemini)
 
 Defined in `agent/runtime.py`. Example:
 ```python
@@ -204,7 +204,9 @@ print(reply.plot_path)
 print(reply.uq_bands)
 ```
 
-The SDK creates a `ClaudeAgentClient` pinned to `claude-opus-4-7`, loads subagent definitions from `.claude/agents/`, and runs the planner.
+In v2.0 the runtime targets **Vertex AI Gemini** (`gemini-2.0-flash-001` by default, configurable via `GEMINI_MODEL`). Subagent definitions in `.claude/agents/` are loaded as Gemini system prompts; tools are declared via `FunctionDeclaration`. The SSE event shape emitted by `agent/api.py` is preserved across the v0.2 → v2.0 LLM migration so the dashboard does not need to change.
+
+The `LLM_PROVIDER` env var controls the backend (`vertex` default, `litellm` fallback for OpenRouter free models if Vertex credit is exhausted).
 
 ---
 
@@ -258,4 +260,5 @@ The ui-engineer is explicitly *not* invoked mid-query. It's a build-phase specia
 2. **Explicit parallelism** — if two calls can run in one message, they do.
 3. **Reviewer is always last** — no answer leaves the system un-gated.
 4. **Skills over prompts** — reusable logic (IAPWS, MC, viz) lives in `.claude/skills/`, not baked into agent prompts.
-5. **Honest fallback** — if GeoForce-Solver fails analytical benchmarks by Day 1 EOD, we drop the solver and the planner falls back to surrogate-only. The architecture survives either way.
+5. **Honest fallback** — if any v2.0 phase fails its exit gate, the prior phase's deliverable stays as the user-visible product until the failing phase is repaired. The architecture survives either way.
+6. **LLM-provider portability** — the runtime uses Vertex Gemini today but the agent loader, tool declarations, and SSE format are deliberately provider-neutral. Swapping to OpenRouter (DeepSeek V3 / Llama 3.3) requires only a `LLM_PROVIDER` flag flip.

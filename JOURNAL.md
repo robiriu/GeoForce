@@ -673,3 +673,130 @@ Ballpark: a 3-turn follow-up conversation costs ~$0.30-0.80 on Opus 4.7.
 
 *Last updated: 2026-04-24 — Phase 3 complete, multi-turn chat live,
 hero preserved, canvas dynamic across turns.*
+
+---
+
+## 17. v2.0 Transformation Begins (2026-05-03)
+
+### 17.1 Why now, why this scope
+
+A week after the hackathon shipped (v0.2 live at `platform.forcex-ai.com/geoforce-v2`
+and `huggingface.co/spaces/robiriu/geoforce`), the user reopened the
+question: *the hackathon scope was deliberately small to ship in two
+days. The original v2 transformation plan in `initial/PLAN.md` — six
+phases, real two-phase TOUGH/Waiwera, 3D U-Net, Brady benchmark,
+Indonesian field validation, GNN v3.0 — can be realised. Let's realise
+it.*
+
+So the hackathon-era scope locks in CLAUDE.md §2 — single-phase only,
+no live simulators, never retrain the CNN — are lifted. The
+`initial/PLAN.md` aspirational doc is promoted to executing scope, and
+a new `PLAN-V2.md` operationalizes it under the constraint of free
+compute and a solo workflow.
+
+The v0.2 build stays deployed. It's working. Users see something real
+while v2.0 cooks. v2.0 only replaces it once it's actually better
+against the success criteria in `initial/PLAN.md` §Success.
+
+### 17.2 The LLM-provider question
+
+The hackathon ran on Claude Opus 4.7. v2.0 has to run on free credit
+because there's no Anthropic API budget for a multi-week development
+loop. We evaluated:
+
+| Option | Verdict |
+|---|---|
+| Anthropic Claude (Opus / Sonnet 4.6) | No budget |
+| OpenRouter free tier (DeepSeek V3, Llama 3.3 70B, Qwen Coder 32B, Gemma) | Viable, but tool-calling reliability is uneven and rate limits bite during long agent loops |
+| Google AI Studio Gemini Flash (free direct API) | Strong: 1500 RPD, 1M context, decent tool calling |
+| Google Vertex AI Gemini | Strongest: same model, but billed via existing GCP credits |
+
+We checked the user's GCP credits and found a *GenAI App Builder*
+trial credit of Rp 16.8M (~$1,000), expiring March 2027, scope-locked
+to GenAI products on Vertex. That credit is shaped exactly for our
+orchestrator — it cannot be spent on VM compute or training, but it
+can be spent on Gemini inference indefinitely for the life of v2.0
+development. Which means: **we don't have to fight rate limits at all
+for the orchestrator.**
+
+So the migration target is Vertex Gemini direct (`gemini-2.0-flash-001`
+default, configurable). The runtime keeps the LiteLLM swap path open
+in case the credit ever runs dry — `LLM_PROVIDER=litellm` flips to
+OpenRouter free models. But we don't need it day one.
+
+### 17.3 The compute question
+
+Vertex credit covers the orchestrator. It does **not** cover:
+- Waiwera simulation campaign (~750 CPU-hours for 1,000 scenarios)
+- 3D U-Net training (hours of GPU)
+- Dataset storage
+
+The Free Trial general credit (Rp 2.97M) expires May 11, 2026 —
+seven days away. Insufficient for any sustained workload. So the
+compute architecture is forced to be free-tier only:
+
+| Workload | Home |
+|---|---|
+| Orchestrator inference | Vertex Gemini (GenAI credit, free until Mar 2027) |
+| Waiwera 24/7 worker | Existing VPS, niced + cgroup-limited |
+| Waiwera burst parallelism | Kaggle saved sessions, 5 concurrent |
+| Backup matrix bursts | GitHub Actions free tier |
+| 3D U-Net training | Kaggle free T4/P100 |
+| Dataset storage | HuggingFace Datasets (free, public) |
+| Inference serving | HuggingFace Spaces (existing) |
+
+Oracle Cloud Always Free was the cleanest 24/7 worker option but
+their signup rate-limiter blocks Indonesian IPs, and we couldn't get
+through even via mobile hotspot or incognito after multiple
+attempts. So the VPS substitutes — slower, but already provisioned
+and managed.
+
+### 17.4 Repo and project structure
+
+`main` is now frozen at v0.2. All v2.0 work happens on
+`v2-transform`, a long-lived branch pushed to GitHub. The diff stays
+auditable, the v0.2 build is one revert away if v2.0 stalls, and
+nothing on `main` rots while we work.
+
+The GCP project `forcex-studio` (which the user confirmed was unused)
+got repurposed for v2.0: display name renamed to "GeoForce", Vertex
+AI and Generative Language APIs enabled, billing already on the right
+"My Billing Account" (not "My Billing Account 1" — a previous slip
+the user corrected).
+
+Project ID stays `forcex-studio` because GCP project IDs are
+immutable. That's fine; it's a backstage URL, never user-visible.
+
+### 17.5 Hackathon scope locks lifted
+
+The five priority rules in v0.2 CLAUDE.md §2 were:
+1. Read PROJECT-PLAN.md before scope changes
+2. Solver fail → drop solver, surrogate-only
+3. Single-phase water only
+4. No live simulators
+5. Never retrain the CNN
+
+Rules 1–2 served the hackathon and are obsolete. Rule 5 stays
+*inverted*: v1.1 weights are frozen for archival/comparison, but the
+v2.0 model is a separately-trained 3D U-Net on Waiwera-generated
+two-phase data. Rules 3–4 are flipped: two-phase is now required;
+Waiwera is now the executing simulator.
+
+The new priority rules in v2.0 CLAUDE.md §2 codify the locked
+decisions and the gating discipline: no phase begins until the prior
+phase's exit gate is green. That's what stops the project from
+silently sliding into 18 months of perpetual "almost done."
+
+### 17.6 What this entry doesn't claim
+
+Nothing here is built yet. Phase 0 is in progress — branch created,
+docs rewritten, Vertex APIs enabled, archive directory populated.
+The agent runtime migration from `claude_agent_sdk` to Vertex Gemini
+is the next concrete code change, after Vertex auth is verified.
+The exit gate for Phase 0 is the runtime answering one query
+end-to-end with a single tool call dispatched correctly — not a
+checkbox on doc updates.
+
+This is a marker, not a victory lap.
+
+*Last updated: 2026-05-03 — Phase 0 in progress.*
