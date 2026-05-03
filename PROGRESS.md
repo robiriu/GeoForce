@@ -106,10 +106,11 @@ Rationale: FORGE is EGS in granitic basement with hydraulic stimulation; physics
 - [x] 20 unit tests pass (`tests/test_simulation_{grid,wells,sampling}.py`)
 
 ### 2B. Block C — Pipeline glue (VPS-side, no Waiwera install needed)
-- [ ] Install PyTOUGH in `.venv` (deck templating + output parsing only)
-- [ ] `simulation/deck.py` — render Waiwera input deck from (Scenario, WellSet, GridSpec); round-trip test
-- [ ] `simulation/queue.py` + `simulation/queue.db` (SQLite) — job-range producer; consumer interface
-- [ ] `simulation/campaign.py` — driver that ties it together (Waiwera invocation gated on `WAIWERA_AVAILABLE` env so it skips on VPS)
+- [x] Install PyTOUGH in `.venv` (deck templating + output parsing only) — pytough 1.6.6
+- [x] `simulation/deck.py` — render Waiwera input deck from (Scenario, WellSet, GridSpec); round-trip test
+- [x] `simulation/queue.py` (SQLite WAL) — atomic FIFO claim, status state machine, params round-trip
+- [x] `simulation/campaign.py` — driver tying it together (Waiwera invocation gated on `WAIWERA_AVAILABLE` env so it skips on VPS)
+- [x] 18 tests pass (`tests/test_simulation_{deck,queue,campaign}.py`)
 
 ### 2C. Block B — Kaggle Waiwera execution
 - [ ] `notebooks/03-kaggle-sim-burst.ipynb` — pulls Waiwera Docker image (or conda), runs RFP benchmark, then a job-range from the SQLite queue
